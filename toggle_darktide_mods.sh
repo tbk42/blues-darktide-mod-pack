@@ -1,0 +1,98 @@
+#!/bin/bash
+pause() {
+	read -rsn 1 -p "Press any key to continue"
+	echo ""
+}
+
+countdown_from() {
+	# default delay to 5 seconds
+	local delay="5"
+	if [[ -n "${1}" ]]; then
+		delay="$1"
+	fi
+	local d=0
+	for ((d=delay; d>0; d=$(( d - 1 )) )) do
+		echo -en "${d}... "
+		sleep 1
+	done
+	echo -e ""
+}
+
+interactive=""
+if [[ $- != *i* ]]; then
+	interactive="true"
+fi
+
+echo -e "Locating Warhammer 40,000: Darktide please wait..."
+
+scan_paths=()
+# first check in the user's $HOME directory for the game
+scan_paths+=("$HOME/")
+# next, check in the unified/SteamLibrary directory for the game
+scan_paths+=("/unified/SteamLibrary/")
+# lastly, check in the / (root directory) and below for the game
+scan_paths+=("/")
+
+for ((i=0; i<${#scan_paths[*]}; i++)) do
+	if [[ "${scan_paths[i]}" == "/" ]]; then
+		# echo -en "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
+		echo -e "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
+	else
+		# echo -en "    Scanning ${scan_paths[i]} ... "
+		echo -en ""
+	fi
+	readarray -t "darktide_home" < <(find "${scan_paths[i]}" -type d -name "Warhammer 40,000 DARKTIDE" 2>/dev/null)
+	if (( ${#darktide_home[*]} == 0 )); then
+		# echo -e "failed."
+		echo -en ""
+	else
+		echo -e "Found Darktide in ${darktide_home[0]}."
+		break
+	fi
+done
+
+# If we found Darktide, change directory...
+if (( ${#darktide_home[*]} == 0 )); then
+	echo -e "All checks failed to locate Warhammer 40,000: Darktide."
+	echo -e "Exiting."
+	exit 1
+else
+	# echo "Changing directory to \"${darktide_home[0]}\""
+	cd "${darktide_home[0]}" || { echo "Unable to change directory, exiting."; exit 1; }
+fi
+
+
+# successfully patched "bundle_database.data"
+# successfully unpatched "bundle_database.data"
+# "bundle_database.data" already patched
+if [[ -d "./tools" ]] && [[ -f "./tools/dtkit-patch.exe" ]] && [[ -d "./bundle" ]]; then
+	echo -e "Running patcher... Please see the patcher's popup message."
+	readarray -t "patchlog_array" < <(wine "./tools/dtkit-patch.exe" --toggle ".\bundle" 2>&1)
+	# if session is "interactive" i.e. visible
+	if [[ -n "${interactive}" ]]; then
+		for ((i=0; i<${#patchlog_array[*]}; i++)) do
+			if [[ "${patchlog_array[i],,}" =~ bundle_database.data ]]; then
+				case "$(echo -e "${patchlog_array[i],,}" | cut -d\  -f2)" in
+					"patched")   echo "Successfully patched the Darktide bundle database.";
+								 countdown_from 9
+								 ;;
+					"unpatched") echo "Successfully unpatched the Darktide bundle database.";
+								 countdown_from 9
+								 ;;
+					"already")   echo "The Darktide bundle database was already patched.";
+								 countdown_from 9
+								 ;;
+					*) 			 echo "Error: Unusual message detected.";
+								 echo "Message: ${patchlog_array[i]}"
+								 pause
+								 ;;
+				esac
+			fi
+		done
+	fi
+else
+	echo "I could not find the patcher or required directories, unable to run."
+fi
+
+echo -e "Goodbye."
+exit 0
