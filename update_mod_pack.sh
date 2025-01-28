@@ -1,4 +1,4 @@
-#!/bin/bash
+                                #!/bin/bash
 
 error() {
 	local message=""
@@ -71,6 +71,7 @@ fi
 if [[ ! -d "${user_home}/${games}" ]]; then
 	error "Games directory not found. (${cyan}${games}${reset})" "exit"
 fi
+
 
 # echo -e "Changing directory to ${cyan}${user_home}/${games}${reset}"
 cd "${user_home}/${games}" || error "Unable to change to the user's ${user_home}/${games} directory." "exit"
@@ -245,16 +246,77 @@ if [[ -d "${working}" ]]; then
 	rm -rf ${working}
 fi
 
+
+# -------------------------------------------------------------------------------------------------------------------------
+
+function FindIndex() {
+	local value="${1}"
+	local array_name="${2}"
+	local local_array=()
+	local i=0
+
+	case "${array_name}" in
+		"alphabet") for ((i=0; i<${#alphabet[*]}; i++)) do
+						local_array+=("${alphabet[i]}")
+					done
+					;;
+		*)  echo "-2"
+			return
+			;;
+	esac
+
+	for ((i=0; i<${#local_array[*]}; i++)) do
+		if [[ "${local_array[i]}" == "${value}" ]]; then
+			break
+		fi
+	done
+
+	if (( i == ${#local_array[*]} )); then
+		echo "-1"
+		return
+	fi
+
+	echo "${i}"
+	return
+}
+
+function VersionToFile() {
+	local version=""
+	local year=""
+	local month=""
+	local day=""
+	local subversion_as_letter=""
+	local subversion_as_number=0
+	local alphabet=()
+	local filename=""
+
+	version="${1,,}"
+	year="${version:0:4}"
+	month="${version:5:2}"
+	day="${version:8:2}"
+	subversion_as_letter="${version:10:1}"
+
+	alphabet+=("")
+	alphabet+=({a..z})
+
+	subversion_as_number=$(FindIndex "$(subversion_as_letter,,)" "alphabet")
+
+	echo "${subversion_as_number}"
+	return
+}
+
 # Upate version
 today=$(date +%+4Y-%m-%d)
+
+if [[ ! -f "version.txt" ]]; then
+	touch "version.txt"
+	echo "" > "version.txt"
+	echo "" >> "version.txt"
+fi
 
 version=()
 if [[ -f "version.txt" ]]; then
 	readarray -t "version" < <(cat "version.txt")
-else
-	touch "version.txt"
-	echo "" > "version.txt"
-	echo "" >> "version.txt"
 fi
 
 last_version_date=""
@@ -263,7 +325,7 @@ if (( ${#version[*]} > 0 )); then
 fi
 last_version_number=""
 if (( ${#version[*]} > 1 )); then
-	last_version_number="${version[1]}"
+	las01t_version_number="${version[1]}"
 fi
 
 new_version_date="${today}"
@@ -292,6 +354,8 @@ if [[ -n "${new_version_number}" ]]; then
 	fi
 fi
 
+# -------------------------------------------------------------------------------------------------------------------------
+
 # move old zips and sha256 files to previous directory
 readarray -t "listing_zip" < <(find "./" -maxdepth "1" -type "f" -name "*.zip" 2>/dev/null | sort)
 if (( ${#listing_zip[*]} > 0 )); then
@@ -315,9 +379,9 @@ fi
 
 # Generate text for change log with discord md formatting
 echo -e ""
-echo -e "Version: **${new_version_date}${new_version_letter}**"
 if [[ -f "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" ]]; then
-	echo -e "sha256: **$(cat "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" | cut -d\  -f1)** $(cat "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" | cut -d\  -f2-)"
+	echo -e "sha256: $(cat "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" | cut -d\  -f2-)"
+	echo -e "sha256: ****"
 else
 	error "No sha256 file found for the file: ${this_pack_name} ${new_version_date}${new_version_letter}.zip"
 fi
