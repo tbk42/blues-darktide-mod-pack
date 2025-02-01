@@ -379,9 +379,10 @@ fi
 
 # Generate text for change log with discord md formatting
 echo -e ""
+echo -e "Version: ${new_version_date}${new_version_letter}"
 if [[ -f "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" ]]; then
-	echo -e "sha256: $(cat "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" | cut -d\  -f2-)"
-	echo -e "sha256: ****"
+	echo -e "File: $(cat "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" | cut -d\  -f2-)"
+	echo -e "sha256: **$(cat "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256" | cut -d\  -f1)**"
 else
 	error "No sha256 file found for the file: ${this_pack_name} ${new_version_date}${new_version_letter}.zip"
 fi
@@ -391,21 +392,21 @@ if (( ${#added[*]} == 0 )); then
 	echo -e "Added: *None*"
 else
 	for ((a=0; a<${#added[*]}; a++)) do
-		echo -e "Added: __${added[a]}__"
+		echo -e "Added: __$(echo "${added[a]}" | cut -d- -f1)__"
 	done
 fi
 if (( ${#updated[*]} == 0 )); then
 	echo -e "Updated: *None*"
 else
 	for ((u=0; u<${#updated[*]}; u++)) do
-		echo -e "Updated: __${updated[u]}__"
+		echo -e "Updated: __$(echo "${updated[u]}" | cut -d- -f1)__"
 	done
 fi
 if (( ${#removed[*]} == 0 )); then
 	echo -e "Removed: *None*"
 else
 	for ((r=0; r<${#removed[*]}; r++)) do
-		echo -e "Removed: __${removed[r]}__"
+		echo -e "Removed: __$(echo "${removed[r]}" | cut -d- -f1)__"
 	done
 	echo -e ":diamond_shape_with_a_dot_inside: *note: whenever mods are removed from the pack, it is best to eliminate the mods folder before placing this pack.*"
 fi
