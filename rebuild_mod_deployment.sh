@@ -80,7 +80,7 @@ if [[ ! -d "${user_home}/${games}/${WH40KDT}" ]]; then
 fi
 
 # echo -e "Changing directory to ${cyan}${user_home}/${games}${reset}"
-cd "${user_home}/${games}" || error "Unable to change to the user's ${user_home}/${games} directory." "exit"
+cd "${user_home}/${games}/${WH40KDT}" || error "Unable to change to the user's ${user_home}/${games}/${WH40KDT} directory." "exit"
 # pause
 
 if [[ ! -d "${scripts}" ]]; then
@@ -135,4 +135,4 @@ echo -e "Deploying mods to game"
 cp --preserve=all --recursive --verbose --force --target-directory="${steam_link_name}" "${this_pack_name}/mods"
 
 echo -en "Mod pack version: deployed."
-end
+exit
