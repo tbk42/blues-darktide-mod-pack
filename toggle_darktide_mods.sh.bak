@@ -6,19 +6,28 @@ pause() {
 
 countdown_from() {
 	# default delay to 5 seconds
-	local delay="${1:-5}"
-	local i b back_str
-	for ((i = delay; i > 0; i--)) do
-		echo -en "${i}... "
+	local delay="5"
+	if [[ -n "${1}" ]]; then
+		delay="$1"
+	fi
+	local b=0
+	local d=0
+	for ((d=delay; d>0; d=$(( d - 1 )) )) do
+		echo -en "${d}... "
 		sleep 1
-		back_str=""
-		# +4 for "... " (e.g., "5... ")
-		for ((b = 0; b < ${#i} + 4; b++)); do
-			back_str+="\b"
+		back=""
+		for ((b=0; b<${#d}+4; b++)) do
+			back+="\b"
 		done
-		echo -en "${back_str}"
+		echo -en "${back}"
 	done
+	# echo -e ""
 }
+
+interactive=""
+if [[ $- != *i* ]]; then
+	interactive="true"
+fi
 
 echo -e "Locating Warhammer 40,000: Darktide please wait..."
 
@@ -30,37 +39,32 @@ scan_paths+=("/unified/SteamLibrary/")
 # lastly, check in the / (root directory) and below for the game
 scan_paths+=("/")
 
-darktide_found_dir="" # Variable to store the found directory path
-
-for path_to_scan in "${scan_paths[@]}"; do
-	current_find_args=("-type" "d" "-name" "Warhammer 40,000 DARKTIDE")
-
-	if [[ "${path_to_scan}" == "/" ]]; then
+for ((i=0; i<${#scan_paths[*]}; i++)) do
+	if [[ "${scan_paths[i]}" == "/" ]]; then
+		# echo -en "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
 		echo -e "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
-	elif [[ ! -d "${path_to_scan}" ]]; then
-		# If a configured path (other than "/") doesn't exist or isn't a directory, skip it.
-		# echo -e "    Configured scan path ${path_to_scan} not found or not a directory. Skipping."
-		continue
+	else
+		# echo -en "    Scanning ${scan_paths[i]} ... "
+		echo -en ""
 	fi
-
-	# Use -print -quit to stop find after the first match and output the path.
-	# 2>/dev/null suppresses errors like "permission denied" during find.
-	result=$(find "${path_to_scan}" "${current_find_args[@]}" -print -quit 2>/dev/null)
-
-	if [[ -n "$result" ]]; then
-		darktide_found_dir="$result"
-		echo -e "Found Darktide in ${darktide_found_dir}."
-		break # Exit the loop once found
+	readarray -t "darktide_home" < <(find "${scan_paths[i]}" -type d -name "Warhammer 40,000 DARKTIDE" 2>/dev/null)
+	if (( ${#darktide_home[*]} == 0 )); then
+		# echo -e "failed."
+		echo -en ""
+	else
+		echo -e "Found Darktide in ${darktide_home[0]}."
+		break
 	fi
 done
 
 # If we found Darktide, change directory...
-if [[ -z "${darktide_found_dir}" ]]; then
+if (( ${#darktide_home[*]} == 0 )); then
 	echo -e "All checks failed to locate Warhammer 40,000: Darktide."
 	echo -e "Exiting."
 	exit 1
 else
-	cd "${darktide_found_dir}" || { echo "Unable to change directory to '${darktide_found_dir}', exiting."; exit 1; }
+	# echo "Changing directory to \"${darktide_home[0]}\""
+	cd "${darktide_home[0]}" || { echo "Unable to change directory, exiting."; exit 1; }
 fi
 
 # successfully patched "bundle_database.data"
@@ -69,21 +73,22 @@ fi
 if [[ -d "./tools" ]] && [[ -f "./tools/dtkit-patch.exe" ]] && [[ -d "./bundle" ]]; then
 	echo -e "Running patcher... Please see the patcher's popup message."
 	readarray -t "patchlog_array" < <(wine "./tools/dtkit-patch.exe" --toggle ".\bundle" 2>&1)
-	for line in "${patchlog_array[@]}"; do
-		if [[ "${line,,}" =~ bundle_database.data ]]; then
-			case "$(echo "${line,,}" | cut -d' ' -f2)" in
+	# if session is "interactive" i.e. visible
+	for ((i=0; i<${#patchlog_array[*]}; i++)) do
+		if [[ "${patchlog_array[i],,}" =~ bundle_database.data ]]; then
+			case "$(echo "${patchlog_array[i],,}" | cut -d\  -f2)" in
 				"patched")   echo "Successfully patched the Darktide bundle database.";
-							 countdown_from 5
+							 if [[ -n "${interactive}" ]]; then countdown_from 5; fi
 							 ;;
 				"unpatched") echo "Successfully unpatched the Darktide bundle database.";
-							 countdown_from 5
+							 if [[ -n "${interactive}" ]]; then countdown_from 5; fi
 							 ;;
 				"already")   echo "The Darktide bundle database was already patched.";
-							 countdown_from 5
+							 if [[ -n "${interactive}" ]]; then countdown_from 5; fi
 							 ;;
 				*) 			 echo "Error: Unusual message detected.";
-							 echo "Message: ${line}"
-							 pause
+							 echo "Message: ${patchlog_array[i]}"
+							 if [[ -n "${interactive}" ]]; then pause; fi
 							 ;;
 			esac
 		fi
