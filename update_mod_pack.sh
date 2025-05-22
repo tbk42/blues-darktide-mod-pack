@@ -1,4 +1,4 @@
-                                #!/bin/bash
+#!/bin/bash
 
 error() {
 	local message=""
@@ -34,8 +34,8 @@ reset="\e[0m"
 blue="\e[38;5;21m"
 cyan="\e[38;5;51m"
 green="\e[38;5;34m"
-magenta="\e[38;5;165m"
-purple="\e[38;5;57m"
+# magenta="\e[38;5;165m"
+# purple="\e[38;5;57m"
 red="\e[38;5;124m"
 yellow="\e[38;5;226m"
 
@@ -60,7 +60,7 @@ previous="previous"
 added=()
 updated=()
 removed=()
-notes=()
+# notes=()
 
 clear
 echo -e "${blue}${this_pack_name}${reset}"
@@ -71,7 +71,6 @@ fi
 if [[ ! -d "${user_home}/${games}" ]]; then
 	error "Games directory not found. (${cyan}${games}${reset})" "exit"
 fi
-
 
 # echo -e "Changing directory to ${cyan}${user_home}/${games}${reset}"
 cd "${user_home}/${games}" || error "Unable to change to the user's ${user_home}/${games} directory." "exit"
@@ -282,24 +281,24 @@ function FindIndex() {
 
 function VersionToFile() {
 	local version=""
-	local year=""
-	local month=""
-	local day=""
+	# local year=""
+	# local month=""
+	# local day=""
 	local subversion_as_letter=""
 	local subversion_as_number=0
 	local alphabet=()
-	local filename=""
+	# local filename=""
 
 	version="${1,,}"
-	year="${version:0:4}"
-	month="${version:5:2}"
-	day="${version:8:2}"
+	# year="${version:0:4}"
+	# month="${version:5:2}"
+	# day="${version:8:2}"
 	subversion_as_letter="${version:10:1}"
 
-	alphabet+=("")
+	alphabet=()
 	alphabet+=({a..z})
 
-	subversion_as_number=$(FindIndex "$(subversion_as_letter,,)" "alphabet")
+	subversion_as_number=$(FindIndex "${subversion_as_letter,,}" "alphabet")
 
 	echo "${subversion_as_number}"
 	return
@@ -325,7 +324,7 @@ if (( ${#version[*]} > 0 )); then
 fi
 last_version_number=""
 if (( ${#version[*]} > 1 )); then
-	las01t_version_number="${version[1]}"
+	last_version_number="${version[1]}"
 fi
 
 new_version_date="${today}"
