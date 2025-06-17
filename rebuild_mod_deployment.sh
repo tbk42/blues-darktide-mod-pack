@@ -224,7 +224,8 @@ place_modpack() {
 	local i=0
 	for ((i=0; i<${#dirs[*]}; i++)) do
 		if [[ ! -d "${steam_link_name}/${dirs[i]}" ]]; then
-			echo -en "    Making directory: ${yellow}${dirs[i]}${reset} ... "
+			echo -e "    Making directory: ${yellow}${dirs[i]}${reset} ... "
+			echo -e "mkdir \"${steam_link_name}/${dirs[i]}\""
 			mkdir "${steam_link_name}/${dirs[i]}"
 			if [[ -d "${steam_link_name}/${dirs[i]}" ]]; then
 				echo -e "${green}Done.${reset}"
@@ -274,7 +275,7 @@ yellow="\e[38;5;226m"
 
 # Important Locations
 # game_name="Warhammer 40,000: DARKTIDE"
-steam_common="/unified/SteamLibrary/steamapps/common"
+steam_common="/home/eric/.local/share/Steam/steamapps/common"
 steam_game_home="Warhammer 40,000 DARKTIDE"
 steam_link_name="Link To ${steam_game_home}"
 
