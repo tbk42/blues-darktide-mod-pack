@@ -90,6 +90,16 @@ if [[ -d "./tools" ]] && [[ -f "./tools/dtkit-patch.exe" ]] && [[ -d "./bundle" 
 	done
 else
 	echo "I could not find the patcher or required directories, unable to run."
+	echo  "I am in ${PWD}"
+	if [[ -d "./tools" ]]; then
+		echo -e "I could not find the tools directory"
+	fi
+	if [[ -f "./tools/dtkit-patch.exe" ]]; then
+		echo -e "I could not find the patcher exe"
+	fi
+	if [[ -d "./bundle" ]]; then
+		echo -e "I could not find the bundle directory"
+	fi
 fi
 
 echo -e "Goodbye."
