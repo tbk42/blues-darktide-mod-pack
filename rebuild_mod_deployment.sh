@@ -3,17 +3,35 @@
 # This script will rebuild the mod deployment for my personal darktide install and act as a prototype and
 # model for a modpack install script.
 
+usage() {
+    clear
+    echo -e "${blue}${this_pack_name}${reset}"
+	echo -e "Rebuild & Redeploy Pack"
+	echo -e "Usage:"
+	echo -e "    --help              | Display this help"
+	echo -e "    --none              | Perform no actions"
+	echo -e "    --check             | Perform check only"
+	echo -e "    --remove-only       | Perform remove only (no check)"
+	echo -e "    --remove            | Perform check and remove"
+	echo -e "    --deploy-only       | Perform deploy only (no check)"
+	echo -e "    --deploy            | Perform check and deploy"
+	echo -e "    --remove-and-deploy | Perform remove and deploy (no check)"
+	echo -e "    --all               | Perform all tasks"
+	echo -e "    --delay #           | Delay # seconds between steps"
+	exit 0
+}
+
 error() {
 	local message=""
 	message="${1}"
 	if [[ "${message}" != "" ]]; then
-		echo -e "${red}Error:${reset} ${message}"
+		echo -e "${red}Error:${reset} ${message}" >&2
 	fi
 
 	local do_exit=""
 	do_exit="${2}"
 	if [[ -n "${do_exit}" ]]; then
-		echo -e "${red}Exiting${reset}"
+		echo -e "${red}Exiting${reset}" >&2
 		exit 1;
 	fi
 }
@@ -76,6 +94,7 @@ pause() {
 	elif (( delay == -1 )); then
 		default_index=0
 	else # (( delay < -1 )); then
+
 		default_index=0
 	fi
 
@@ -130,7 +149,7 @@ function repeat() {
     echo "$filled"
 }
 
-check_mod_working_dirs() {
+function check_mod_working_dirs() {
 	# Type: Critical / Exit
 	critical=()
 	critical+=("User Home directory" "${user_home}")
@@ -224,8 +243,8 @@ place_modpack() {
 	local i=0
 	for ((i=0; i<${#dirs[*]}; i++)) do
 		if [[ ! -d "${steam_link_name}/${dirs[i]}" ]]; then
-			echo -e "    Making directory: ${yellow}${dirs[i]}${reset} ... "
-			echo -e "mkdir \"${steam_link_name}/${dirs[i]}\""
+			echo -en "    Making directory: ${yellow}${dirs[i]}${reset} ... "
+			# echo -e "mkdir \"${steam_link_name}/${dirs[i]}\""
 			mkdir "${steam_link_name}/${dirs[i]}"
 			if [[ -d "${steam_link_name}/${dirs[i]}" ]]; then
 				echo -e "${green}Done.${reset}"
@@ -300,8 +319,14 @@ check="true"
 remove="true"
 deploy="true"
 delay=-1
+
+if (( $# == 0 )); then
+	usage
+fi
+
 for ((i=1; i-1<$#; i++)) do
 	case "${*:i:1}" in
+		"--help") usage; ;;
 		"--none")						 check="false";	remove="false";	deploy="false";	;;
 		"--check-mod-only"|"--check")	 				remove="false";	deploy="false";	;;
 		"--remove-only")				 check="false";					deploy="false";	;;
@@ -331,7 +356,7 @@ clear
 echo -e "${blue}${this_pack_name}${reset}"
 
 if [[ "${check}" == "true" ]]; then
-	check_mod_working_dirs
+	echo "$(check_mod_working_dirs)"
 	if [[ "${check}" == "true" ]] && [[ "${remove}" == "true" || "${deploy}" == "true" ]]; then
 		pause "${delay}"
 	fi
