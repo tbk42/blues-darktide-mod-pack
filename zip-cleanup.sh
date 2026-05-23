@@ -15,14 +15,18 @@ function is_numeric() {
 }
 
 if [[ -d "./source zips" ]]; then
+	printf "%b\n" "Reading \e[38;2;0;128;255mSource Zips\e[0m directory"
 	readarray -t "source_zips" < <(find "./source zips/" -maxdepth "1" -type "f" 2>/dev/null | sort | cut -d/ -f3-)
 	for ((i=0; i<${#source_zips[*]}; i++)) do
 		filename="${source_zips[i]}"
+		printf "%b\n" "Processing \e[38;2;255;128;128m${filename}\e[0m"
 
 		temp="$(echo "${filename}" | rev | cut -b15- | rev)"
 		mod_name="$(echo "${temp}" | cut -d- -f1)"
 		mod_id="$(echo "${temp}" | cut -d- -f2)"
 		# mod_ver="$(echo "${temp}" | cut -d- -f3-)"
+
+		printf "%b\n" "Detected as \e[38;2;204;204;0m${mod_name} (${mod_id})\e[0m"
 
 		if [[ "$(is_numeric "${mod_id}")" == "true" ]]; then
 			nextfile=""
