@@ -1,4 +1,50 @@
 #!/bin/bash
+####################################################################################################
+# Blue's Mod Pack Scripts - Toggle Darktide Mods
+# 
+# First things first, exit the game!
+# 
+# Run this script to activate the ability to use mods in Darktide.
+# 
+# This script locates Darktide on your drive. If needed and available locally (in the same directory
+# as this script), it will copy in the Darktide Mod Loader, Darktide Mod Framework, and Auto Mod
+# Loading and Ordering. Together, these three mods make using mods in Darktide possible, consistent,
+# and easy to manage. I did not create nor do I maintain any of these. They are the IP of their
+# respective authors. My script just makes it as easy as I can for you, the player, by automating
+# detection and deploymeent. In other words, run this script and it does the minimal work for you.
+# Nexus Mods prevents us from automatically downloading the latest copy, so if you need them, here
+# are the URLs for each of the mods. Place the three zips in the same directory as this script, then
+# run this script.
+# 
+#   Darktide Mod Loader ------------- https://www.nexusmods.com/warhammer40kdarktide/mods/19
+#   Darktide Mod Framework ---------- https://www.nexusmods.com/warhammer40kdarktide/mods/8
+#   Auto Mod Loading and Ordering --- https://www.nexusmods.com/warhammer40kdarktide/mods/246
+# 
+# After seeing that these three are deployed, this script checks for a mod pack zip and compares it
+# to the current mod deployment. If the mod directory is otherwise empty (except the three
+# previously mentioned mods) then it deploys the pack from the zip) into the game's mod directory.
+# 
+# Most importantly, this script will trigger the Darktide Mod Loader's patcher.
+# 
+# The patcher will pop up a dialog on your screen either notifying you that it activated the patch,
+# or asking if you want to remove the patch or not.
+# 
+# Once activated, the mods load with the game.
+# 
+# To toggle ALL mods back off entirely, run this script again to activate the unpatch feature. 
+# 
+####################################################################################################
+
+### Configuration ###
+scan_paths=()
+# first check in the user's $HOME directory for the game
+scan_paths+=("$HOME/")
+# next, check in the unified/SteamLibrary directory for the game
+scan_paths+=("/unified/SteamLibrary/")
+# lastly, check in the / (root directory) and below for the game
+scan_paths+=("/")
+
+### Function and Subroutine Library ###
 pause() {
 	read -rsn 1 -p "Press any key to continue"
 	echo ""
@@ -20,87 +66,241 @@ countdown_from() {
 	done
 }
 
-echo -e "Locating Warhammer 40,000: Darktide please wait..."
-
-scan_paths=()
-# first check in the user's $HOME directory for the game
-scan_paths+=("$HOME/")
-# next, check in the unified/SteamLibrary directory for the game
-scan_paths+=("/unified/SteamLibrary/")
-# lastly, check in the / (root directory) and below for the game
-scan_paths+=("/")
-
-darktide_found_dir="" # Variable to store the found directory path
-
-for path_to_scan in "${scan_paths[@]}"; do
-	current_find_args=("-type" "d" "-name" "Warhammer 40,000 DARKTIDE")
-
-	if [[ "${path_to_scan}" == "/" ]]; then
-		echo -e "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
-	elif [[ ! -d "${path_to_scan}" ]]; then
-		# If a configured path (other than "/") doesn't exist or isn't a directory, skip it.
-		# echo -e "    Configured scan path ${path_to_scan} not found or not a directory. Skipping."
-		continue
-	fi
+function find_darktide_in() {
+	local path_to_scan="${1}"
+	if [[ -z "${path_to_scan}" ]]; then return 1; fi
+	if [[ ! -d "${path_to_scan}" ]]; then return 2; fi
 
 	# Use -print -quit to stop find after the first match and output the path.
 	# 2>/dev/null suppresses errors like "permission denied" during find.
-	result=$(find "${path_to_scan}" "${current_find_args[@]}" -print -quit 2>/dev/null)
+	darktide_found_dir=$(find "${path_to_scan}" "${current_find_args[@]}" -print -quit 2>/dev/null)
 
-	if [[ -n "$result" ]]; then
-		darktide_found_dir="$result"
-		echo -e "Found Darktide in ${darktide_found_dir}."
-		break # Exit the loop once found
+	if [[ -z "$darktide_found_dir" ]]; then return 3; fi
+
+	echo "${darktide_found_dir}"
+	return 0
+}
+
+# deploy_loader() {}
+# deploy_framework() {}
+# deploy_ordering() {}
+
+### Main Script ###
+current_find_args=("-type" "d" "-name" "Warhammer 40,000 DARKTIDE")
+
+# Variable to store the found directory path
+echo -e "Locating Warhammer 40,000: Darktide please wait..."
+
+# clear any previous result
+darktide_found_dir=""
+
+for path_to_scan in "${scan_paths[@]}"; do
+	if [[ -z "${path_to_scan}" ]]; then continue; fi
+
+	echo -en "  Checking ${path_to_scan} ..."
+
+	if [[ ! -d "${path_to_scan}" ]]; then
+		echo -e " directory not found."
+		continue
 	fi
+
+	if [[ "${path_to_scan}" == "/" ]]; then
+		echo -e ""
+		echo -en "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
+	fi
+
+	darktide_found_dir="$(find_darktide_in "${path_to_scan}")"
+
+	case "$?" in
+		0) echo -e "Found Darktide in ${darktide_found_dir}."; break;; # good return
+		1) ;; # no value passed to function; should never happen
+		2) ;; # passed path was not a directory; should never happen
+		3) echo -e "Darktide not found here.";; # game not found in passed path
+		*) ;; # unexpected return value
+	esac
 done
 
-# If we found Darktide, change directory...
 if [[ -z "${darktide_found_dir}" ]]; then
 	echo -e "All checks failed to locate Warhammer 40,000: Darktide."
 	echo -e "Exiting."
 	exit 1
-else
-	cd "${darktide_found_dir}" || { echo "Unable to change directory to '${darktide_found_dir}', exiting."; exit 1; }
 fi
 
-# successfully patched "bundle_database.data"
-# successfully unpatched "bundle_database.data"
-# "bundle_database.data" already patched
-if [[ -d "./tools" ]] && [[ -f "./tools/dtkit-patch.exe" ]] && [[ -d "./bundle" ]]; then
-	echo -e "Running patcher... Please see the patcher's popup message."
-	readarray -t "patchlog_array" < <(wine "./tools/dtkit-patch.exe" --toggle ".\bundle" 2>&1)
-	for line in "${patchlog_array[@]}"; do
-		if [[ "${line,,}" =~ bundle_database.data ]]; then
-			case "$(echo "${line,,}" | cut -d' ' -f2)" in
-				"patched")   echo "Successfully patched the Darktide bundle database.";
-							 countdown_from 5
-							 ;;
-				"unpatched") echo "Successfully unpatched the Darktide bundle database.";
-							 countdown_from 5
-							 ;;
-				"already")   echo "The Darktide bundle database was already patched.";
-							 countdown_from 5
-							 ;;
-				*) 			 echo "Error: Unusual message detected.";
-							 echo "Message: ${line}"
-							 pause
-							 ;;
-			esac
+# Since we found Darktide, change directory...
+cd "${darktide_found_dir}" || { echo "Unable to change directory to '${darktide_found_dir}', exiting."; exit 1; }
+
+
+function check_for_mod_loader() {
+	# Check for Darktide Mod Loader in the supplied path
+
+	local path="${1}"
+	if [[ -z "${path}" ]]; then echo "false"; return 1; fi
+
+	# Set up Mod Loader array
+	local mod_loader=()
+	mod_loader+=("directory" "binaries")
+	mod_loader+=("file" "binaries/mod_loader")
+	mod_loader+=("directory" "bundle")
+	mod_loader+=("file" "bundle/9ba626afa44a3aa3.patch_999")
+	mod_loader+=("directory" "mods")
+	mod_loader+=("directory" "mods/base")
+	mod_loader+=("file" "mods/base/mod_manager.lua")
+	mod_loader+=("directory" "tools")
+	mod_loader+=("file" "tools/dtkit-patch.exe")
+
+	# Check the mod_loader array to be sure everything is there.
+	local dml_counter=0
+	for index in "${!mod_loader[@]}"; do
+		local type=${mod_loader[$index]}
+		local object=""
+		if (( index+1 < ${#mod_loader[@]} )); then
+			object=${mod_loader[$((index+1))]}
+		fi
+		if [[ "${type}" == "directory" ]]; then
+			if [[ -d "${object}" ]]; then
+				((dml_counter++))
+			fi
+		elif [[ "${type}" == "file" ]]; then
+			if [[ -f "${object}" ]]; then
+				((dml_counter++))
+			fi
 		fi
 	done
+
+	# compare the tests to the checks
+	if (( dml_counter == ${#mod_loader[@]} )); then
+		echo "true"
+	else
+		echo "false"
+	fi
+	return 0
+}
+
+dml_zip_filename="$(find ./ -maxdepth 1 -type "f" -name "Darktide Mod Loader-19-*.zip" -print -quit 2>/dev/null | cut -d/ -f2)"
+dmf_zip_filename="$(find ./ -maxdepth 1 -type "f" -name "Darktide Mod Framework-8-*.zip" -print -quit 2>/dev/null | cut -d/ -f2)"
+amlao_zip_filename="$(find ./ -maxdepth 1 -type "f" -name "Auto Mod Loading and Ordering-246-*.zip" -print -quit 2>/dev/null | cut -d/ -f2)"
+
+dml_flag="$(check_for_mod_loader "${darktide_found_dir}")"
+if [[ "${dml_flag}" == "false" ]]; then
+	if [[ -n "${dml_zip_filename}" ]]; then
+	else
+	fi
 else
-	echo "I could not find the patcher or required directories, unable to run."
-	echo  "I am in ${PWD}"
-	if [[ -d "./tools" ]]; then
-		echo -e "I could not find the tools directory"
-	fi
-	if [[ -f "./tools/dtkit-patch.exe" ]]; then
-		echo -e "I could not find the patcher exe"
-	fi
-	if [[ -d "./bundle" ]]; then
-		echo -e "I could not find the bundle directory"
-	fi
 fi
+
+
+
+
+# Check for Darktide Mod Loader
+# Set up Mod Loader array
+mod_loader=()
+mod_loader+=("d" "binaries")
+mod_loader+=("f" "binaries/mod_loader")
+mod_loader+=("d" "bundle")
+mod_loader+=("f" "bundle/9ba626afa44a3aa3.patch_999")
+mod_loader+=("d" "mods")
+mod_loader+=("d" "mods/base")
+mod_loader+=("f" "mods/base/mod_manager.lua")
+mod_loader+=("d" "tools")
+mod_loader+=("f" "tools/dtkit-patch.exe")
+
+# Check the mod_loader array to be sure everything is there.
+dml_flag=0
+for i in "${!mod_loader[@]}"; do
+    t=${mod_loader[$i]}
+    if (( i+1 < ${#mod_loader[@]} )); then
+        o=${mod_loader[$((i+1))]}
+    else
+        o=""
+    fi
+	if [[ "${t}" == "d" ]]; then
+		if [[ -d "${o}" ]]; then
+			((dml_flag++))
+		fi
+	elif [[ "${t}" == "f" ]]; then
+		if [[ -f "${o}" ]]; then
+			((dml_flag++))
+		fi
+	fi
+done
+
+if (( dml_flag != ${#mod_loader[@]} )); then
+	clean_mod_loader
+	deploy_mod_loader
+fi
+
+
+
+if [[ "${exit_flag}" == "true" ]]; then
+	echo "I could not find the patcher or required directories and files, unable to run."
+	echo  "I am in ${PWD}"
+	exit 1
+fi
+
+
+
+
+# Check for Darktide Mod Framework
+# Check for Auto Mod Loading and Ordering
+
+
+
+
+
+
+
+
+# Check the mod_loader array to be sure everything is there.
+exit_flag="false"
+for i in "${!mod_loader[@]}"; do
+    t=${mod_loader[$i]}
+    if (( i+1 < ${#mod_loader[@]} )); then
+        o=${mod_loader[$((i+1))]}
+    else
+        o=""
+    fi
+	if [[ "${t}" == "d" ]]; then
+		if [[ ! -d "${o}" ]]; then
+			echo -e "I could not find the ${o} directory"
+			exit_flag="true"
+		fi
+	elif [[ "${t}" == "f" ]]; then
+		if [[ ! -f "${o}" ]]; then
+			echo -e "I could not find the file named ${o}"
+			exit_flag="true"
+		fi
+	fi
+done
+if [[ "${exit_flag}" == "true" ]]; then
+	echo "I could not find the patcher or required directories and files, unable to run."
+	echo  "I am in ${PWD}"
+	exit 1
+fi
+
+echo -e "Running patcher... Please see the patcher's popup message."
+readarray -t "patchlog_array" < <(wine "./tools/dtkit-patch.exe" --toggle ".\bundle" 2>&1)
+for line in "${patchlog_array[@]}"; do
+	if [[ "${line,,}" =~ bundle_database.data ]]; then
+		# successfully patched "bundle_database.data"
+		# successfully unpatched "bundle_database.data"
+		# "bundle_database.data" already patched
+		case "$(echo "${line,,}" | cut -d' ' -f2)" in
+			"patched")   echo "Successfully patched the Darktide bundle database.";
+							countdown_from 5
+							;;
+			"unpatched") echo "Successfully unpatched the Darktide bundle database.";
+							countdown_from 5
+							;;
+			"already")   echo "The Darktide bundle database was already patched.";
+							countdown_from 5
+							;;
+			*) 			 echo "Error: Unusual message detected.";
+							echo "Message: ${line}"
+							pause
+							;;
+		esac
+	fi
+done
 
 echo -e "Goodbye."
 exit 0
