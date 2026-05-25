@@ -47,7 +47,7 @@ scan_paths+=("/")
 ### Function and Subroutine Library ###
 pause() {
 	read -rsn 1 -p "Press any key to continue"
-	echo ""
+	printf "%s\n" ""
 }
 
 countdown_from() {
@@ -55,14 +55,14 @@ countdown_from() {
 	local delay="${1:-5}"
 	local i b back_str
 	for ((i = delay; i > 0; i--)) do
-		echo -en "${i}... "
+		printf "%b" "${i}... "
 		sleep 1
 		back_str=""
 		# +4 for "... " (e.g., "5... ")
 		for ((b = 0; b < ${#i} + 4; b++)); do
 			back_str+="\b"
 		done
-		echo -en "${back_str}"
+		printf "%b" "${back_str}"
 	done
 }
 
@@ -77,7 +77,7 @@ function find_darktide_in() {
 
 	if [[ -z "$darktide_found_dir" ]]; then return 3; fi
 
-	echo "${darktide_found_dir}"
+	printf "%s\n" "${darktide_found_dir}"
 	return 0
 }
 
@@ -89,7 +89,7 @@ function find_darktide_in() {
 current_find_args=("-type" "d" "-name" "Warhammer 40,000 DARKTIDE")
 
 # Variable to store the found directory path
-echo -e "Locating Warhammer 40,000: Darktide please wait..."
+printf "%b\n" "Locating Warhammer 40,000: Darktide please wait..."
 
 # clear any previous result
 darktide_found_dir=""
@@ -97,44 +97,44 @@ darktide_found_dir=""
 for path_to_scan in "${scan_paths[@]}"; do
 	if [[ -z "${path_to_scan}" ]]; then continue; fi
 
-	echo -en "  Checking ${path_to_scan} ..."
+	printf "%b" "  Checking ${path_to_scan} ..."
 
 	if [[ ! -d "${path_to_scan}" ]]; then
-		echo -e " directory not found."
+		printf "%b\n" " directory not found."
 		continue
 	fi
 
 	if [[ "${path_to_scan}" == "/" ]]; then
-		echo -e ""
-		echo -en "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
+		printf "%b\n" ""
+		printf "%b" "    Initial checks failed to locate Darktide. Checking / (root directory), this may take a while..."
 	fi
 
 	darktide_found_dir="$(find_darktide_in "${path_to_scan}")"
 
 	case "$?" in
-		0) echo -e "Found Darktide in ${darktide_found_dir}."; break;; # good return
+		0) printf "%b\n" "Found Darktide in ${darktide_found_dir}."; break;; # good return
 		1) ;; # no value passed to function; should never happen
 		2) ;; # passed path was not a directory; should never happen
-		3) echo -e "Darktide not found here.";; # game not found in passed path
+		3) printf "%b\n" "Darktide not found here.";; # game not found in passed path
 		*) ;; # unexpected return value
 	esac
 done
 
 if [[ -z "${darktide_found_dir}" ]]; then
-	echo -e "All checks failed to locate Warhammer 40,000: Darktide."
-	echo -e "Exiting."
+	printf "%b\n" "All checks failed to locate Warhammer 40,000: Darktide."
+	printf "%b\n" "Exiting."
 	exit 1
 fi
 
 # Since we found Darktide, change directory...
-cd "${darktide_found_dir}" || { echo "Unable to change directory to '${darktide_found_dir}', exiting."; exit 1; }
+cd "${darktide_found_dir}" || { printf "%s\n" "Unable to change directory to '${darktide_found_dir}', exiting."; exit 1; }
 
 
 function check_for_mod_loader() {
 	# Check for Darktide Mod Loader in the supplied path
 
 	local path="${1}"
-	if [[ -z "${path}" ]]; then echo "false"; return 1; fi
+	if [[ -z "${path}" ]]; then printf "%s\n" "false"; return 1; fi
 
 	# Set up Mod Loader array
 	local mod_loader=()
@@ -169,9 +169,9 @@ function check_for_mod_loader() {
 
 	# compare the tests to the checks
 	if (( dml_counter == ${#mod_loader[@]} )); then
-		echo "true"
+		printf "%s\n" "true"
 	else
-		echo "false"
+		printf "%s\n" "false"
 	fi
 	return 0
 }
@@ -232,8 +232,8 @@ fi
 
 
 if [[ "${exit_flag}" == "true" ]]; then
-	echo "I could not find the patcher or required directories and files, unable to run."
-	echo  "I am in ${PWD}"
+	printf "%s\n" "I could not find the patcher or required directories and files, unable to run."
+	printf "%s\n" "I am in ${PWD}"
 	exit 1
 fi
 
@@ -261,46 +261,46 @@ for i in "${!mod_loader[@]}"; do
     fi
 	if [[ "${t}" == "d" ]]; then
 		if [[ ! -d "${o}" ]]; then
-			echo -e "I could not find the ${o} directory"
+			printf "%b\n" "I could not find the ${o} directory"
 			exit_flag="true"
 		fi
 	elif [[ "${t}" == "f" ]]; then
 		if [[ ! -f "${o}" ]]; then
-			echo -e "I could not find the file named ${o}"
+			printf "%b\n" "I could not find the file named ${o}"
 			exit_flag="true"
 		fi
 	fi
 done
 if [[ "${exit_flag}" == "true" ]]; then
-	echo "I could not find the patcher or required directories and files, unable to run."
-	echo  "I am in ${PWD}"
+	printf "%s\n" "I could not find the patcher or required directories and files, unable to run."
+	printf "%s\n" "I am in ${PWD}"
 	exit 1
 fi
 
-echo -e "Running patcher... Please see the patcher's popup message."
+printf "%b\n" "Running patcher... Please see the patcher's popup message."
 readarray -t "patchlog_array" < <(wine "./tools/dtkit-patch.exe" --toggle ".\bundle" 2>&1)
 for line in "${patchlog_array[@]}"; do
 	if [[ "${line,,}" =~ bundle_database.data ]]; then
 		# successfully patched "bundle_database.data"
 		# successfully unpatched "bundle_database.data"
 		# "bundle_database.data" already patched
-		case "$(echo "${line,,}" | cut -d' ' -f2)" in
-			"patched")   echo "Successfully patched the Darktide bundle database.";
+		case "$(printf "%s\n" "${line,,}" | cut -d' ' -f2)" in
+			"patched")   printf "%s\n" "Successfully patched the Darktide bundle database.";
 							countdown_from 5
 							;;
-			"unpatched") echo "Successfully unpatched the Darktide bundle database.";
+			"unpatched") printf "%s\n" "Successfully unpatched the Darktide bundle database.";
 							countdown_from 5
 							;;
-			"already")   echo "The Darktide bundle database was already patched.";
+			"already")   printf "%s\n" "The Darktide bundle database was already patched.";
 							countdown_from 5
 							;;
-			*) 			 echo "Error: Unusual message detected.";
-							echo "Message: ${line}"
+			*) 			 printf "%s\n" "Error: Unusual message detected.";
+							printf "%s\n" "Message: ${line}"
 							pause
 							;;
 		esac
 	fi
 done
 
-echo -e "Goodbye."
+printf "%b\n" "Goodbye."
 exit 0

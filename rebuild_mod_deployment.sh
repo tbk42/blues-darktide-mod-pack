@@ -5,19 +5,19 @@
 
 usage() {
     clear
-    echo -e "${blue}${this_pack_name}${reset}"
-	echo -e "Rebuild & Redeploy Pack"
-	echo -e "Usage:"
-	echo -e "    --help              | Display this help"
-	echo -e "    --none              | Perform no actions"
-	echo -e "    --check             | Perform check only"
-	echo -e "    --remove-only       | Perform remove only (no check)"
-	echo -e "    --remove            | Perform check and remove"
-	echo -e "    --deploy-only       | Perform deploy only (no check)"
-	echo -e "    --deploy            | Perform check and deploy"
-	echo -e "    --remove-and-deploy | Perform remove and deploy (no check)"
-	echo -e "    --all               | Perform all tasks"
-	echo -e "    --delay #           | Delay # seconds between steps"
+    printf "%b\n" "${blue}${this_pack_name}${reset}"
+	printf "%b\n" "Rebuild & Redeploy Pack"
+	printf "%b\n" "Usage:"
+	printf "%b\n" "    --help              | Display this help"
+	printf "%b\n" "    --none              | Perform no actions"
+	printf "%b\n" "    --check             | Perform check only"
+	printf "%b\n" "    --remove-only       | Perform remove only (no check)"
+	printf "%b\n" "    --remove            | Perform check and remove"
+	printf "%b\n" "    --deploy-only       | Perform deploy only (no check)"
+	printf "%b\n" "    --deploy            | Perform check and deploy"
+	printf "%b\n" "    --remove-and-deploy | Perform remove and deploy (no check)"
+	printf "%b\n" "    --all               | Perform all tasks"
+	printf "%b\n" "    --delay #           | Delay # seconds between steps"
 	exit 0
 }
 
@@ -25,13 +25,13 @@ error() {
 	local message=""
 	message="${1}"
 	if [[ "${message}" != "" ]]; then
-		echo -e "${red}Error:${reset} ${message}" >&2
+		printf "%b\n" "${red}Error:${reset} ${message}" >&2
 	fi
 
 	local do_exit=""
 	do_exit="${2}"
 	if [[ -n "${do_exit}" ]]; then
-		echo -e "${red}Exiting${reset}" >&2
+		printf "%b\n" "${red}Exiting${reset}" >&2
 		exit 1;
 	fi
 }
@@ -40,22 +40,22 @@ error() {
 # 	local message=""
 # 	message="${1}"
 # 	if [[ "${message}" != "" ]]; then
-# 		echo -e "${blue}Info:${reset} ${message}"
+# 		printf "%b\n" "${blue}Info:${reset} ${message}"
 # 	fi
 # }
 
 function is_numeric() {
 	local number=""
 	if [[ -n "${1}" ]]; then number="${1}"; fi
-	if [[ "${number}" == "" ]]; then echo "false"; return; fi
+	if [[ "${number}" == "" ]]; then printf "%s\n" "false"; return; fi
 	local i=0
 	for ((i=0; i<${#number}; i++)) do
 		case "${number:i:1}" in
 			"0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"-"|"+"|"."|",") ;;
-			*) echo "false"; return; ;;
+			*) printf "%s\n" "false"; return; ;;
 		esac
 	done
-	echo "true"
+	printf "%s\n" "true"
 	return
 }
 
@@ -103,14 +103,14 @@ pause() {
 	if [[ -z "${trailer}" ]]; then trailer="${default_trailer[default_index]}"; fi
 	if [[ "${trailer:-1}" != " " ]]; then trailer="${trailer} "; fi
 
-	echo -en "\e[38;5;229m${prompt}\e[0m"
+	printf "%b" "\e[38;5;229m${prompt}\e[0m"
 
 	if (( delay > 0 )); then
-		echo -en ""
+		printf "%b" ""
 		for ((d=delay; d>0; d=$(( d - 1 )) )) do
-			echo -en "\e[38;5;87m${d} ${trailer}\e[0m"
+			printf "%b" "\e[38;5;87m${d} ${trailer}\e[0m"
 			read -p "" -rs -n 1 -t 1 "storage"
-			echo -en "$(repeat "$(( ${#d} + 1 + ${#trailer} ))" "\b \b")"
+			printf "%b" "$(repeat "$(( ${#d} + 1 + ${#trailer} ))" "\b \b")"
 
 			case "${storage}" in
 				"") ;;
@@ -118,13 +118,13 @@ pause() {
 			esac
 		done
 	elif (( delay == 0 )); then
-		echo -en "${trailer}\e[0m"
+		printf "%b" "${trailer}\e[0m"
 		read -rsn 1 -t 0
 	elif (( delay < 0 )); then
-		echo -en "${trailer}\e[0m"
+		printf "%b" "${trailer}\e[0m"
 		read -rsn 1
 	fi
-	echo -e ""
+	printf "%b\n" ""
 }
 
 # -----------------------------------------------------------------
@@ -146,7 +146,7 @@ function repeat() {
     for ((i=0; i<count; i++)) do
         filled+="$pattern";
     done
-    echo "$filled"
+    printf "%s\n" "$filled"
 }
 
 function check_mod_working_dirs() {
@@ -195,7 +195,7 @@ function check_mod_working_dirs() {
 		fi
 	done
 
-	echo -e "All checks successful"
+	printf "%b\n" "All checks successful"
 }
 
 remove_modpack() {
@@ -211,17 +211,17 @@ remove_modpack() {
 		  remove_pack_structure+=("tools/README.md")
 		  remove_pack_structure+=("tools")
 
-	echo -e "Removing mods from game"
+	printf "%b\n" "Removing mods from game"
 	local i=0
 	for ((i=0; i<${#remove_pack_structure[*]}; i++)) do
 		if [[ -f "${steam_link_name}/${remove_pack_structure[i]}" ]]; then
-			echo -e "    Removing file: ${yellow}${remove_pack_structure[i]}${reset}"
+			printf "%b\n" "    Removing file: ${yellow}${remove_pack_structure[i]}${reset}"
 			rm -rf "${steam_link_name:?}/${remove_pack_structure[i]}"
 			if [[ -f "${steam_link_name}/${remove_pack_structure[i]}" ]]; then
 				error "File remains after removal: \"${steam_link_name}/${remove_pack_structure[i]}\""
 			fi
 		elif [[ -d "${steam_link_name}/${remove_pack_structure[i]}" ]]; then
-			echo -e "    Removing folder: ${yellow}${remove_pack_structure[i]}${reset}"
+			printf "%b\n" "    Removing folder: ${yellow}${remove_pack_structure[i]}${reset}"
 			rm -rf "${steam_link_name:?}/${remove_pack_structure[i]}"
 			if [[ -d "${steam_link_name}/${remove_pack_structure[i]}" ]]; then
 				error "Folder remains after removal: \"${steam_link_name}/${remove_pack_structure[i]}\""
@@ -239,17 +239,17 @@ place_modpack() {
 
 	cd "${user_home}/${games}/${WH40KDT}" || error "Unable to change to the user's ${user_home}/${games}/${WH40KDT} directory." "exit"
 
-	echo -e "Making mod pack directories"
+	printf "%b\n" "Making mod pack directories"
 	local i=0
 	for ((i=0; i<${#dirs[*]}; i++)) do
 		if [[ ! -d "${steam_link_name}/${dirs[i]}" ]]; then
-			echo -en "    Making directory: ${yellow}${dirs[i]}${reset} ... "
-			# echo -e "mkdir \"${steam_link_name}/${dirs[i]}\""
+			printf "%b" "    Making directory: ${yellow}${dirs[i]}${reset} ... "
+			# printf "%b\n" "mkdir \"${steam_link_name}/${dirs[i]}\""
 			mkdir "${steam_link_name}/${dirs[i]}"
 			if [[ -d "${steam_link_name}/${dirs[i]}" ]]; then
-				echo -e "${green}Done.${reset}"
+				printf "%b\n" "${green}Done.${reset}"
 			else
-				echo -e "${red}Failed!${reset}"
+				printf "%b\n" "${red}Failed!${reset}"
 				error "Directory creation failed: ${dirs[i]}"
 			fi
 		fi
@@ -263,23 +263,23 @@ place_modpack() {
 		  deploy_pack_structure+=(   "/tools/" "dtkit-patch.exe")
 		  deploy_pack_structure+=(   "/tools/" "README.md")
 
-	echo -e "Deploying mod pack structure and core files to game"
+	printf "%b\n" "Deploying mod pack structure and core files to game"
 	for ((i=0; i<${#deploy_pack_structure[*]}; i=$(( i + 2 )) )) do
-		echo -en "    ${yellow}.${deploy_pack_structure[i]}${deploy_pack_structure[i+1]}${reset} ... "
+		printf "%b" "    ${yellow}.${deploy_pack_structure[i]}${deploy_pack_structure[i+1]}${reset} ... "
 		cp --preserve=all --recursive --force --target-directory="${steam_link_name}${deploy_pack_structure[i]}" "${this_pack_name}${deploy_pack_structure[i]}${deploy_pack_structure[i+1]}"
 		if [[ -f "${steam_link_name}${deploy_pack_structure[i]}${deploy_pack_structure[i+1]}" ]]; then
-			echo -e "${green}Done.${reset}"
+			printf "%b\n" "${green}Done.${reset}"
 		else
-			echo -e "${red}Failed!${reset}"
+			printf "%b\n" "${red}Failed!${reset}"
 			error "File not found after attempted copy: .${deploy_pack_structure[i]}${deploy_pack_structure[i+1]}"
 		fi
 	done
 
-	echo -e "Deploying mods to game"
+	printf "%b\n" "Deploying mods to game"
 	cp --preserve=all --recursive --force --target-directory="${steam_link_name}" "${this_pack_name}/mods"
 
 	readarray -t "version" < <(cat "version.txt")
-	echo -en "    Mod pack version: ${yellow}${version[0]}-${version[1]}${reset} ... ${green}deployed.${reset}"
+	printf "%b" "    Mod pack version: ${yellow}${version[0]}-${version[1]}${reset} ... ${green}deployed.${reset}"
 }
 
 # color constants
@@ -353,10 +353,10 @@ for ((i=1; i-1<$#; i++)) do
 done
 
 clear
-echo -e "${blue}${this_pack_name}${reset}"
+printf "%b\n" "${blue}${this_pack_name}${reset}"
 
 if [[ "${check}" == "true" ]]; then
-	echo "$(check_mod_working_dirs)"
+	printf "%s\n" "$(check_mod_working_dirs)"
 	if [[ "${check}" == "true" ]] && [[ "${remove}" == "true" || "${deploy}" == "true" ]]; then
 		pause "${delay}"
 	fi
@@ -373,6 +373,6 @@ if [[ "${deploy}" == "true" ]]; then
 	place_modpack
 fi
 
-echo ""
-echo -e "Exiting Script."
+printf "%s\n" ""
+printf "%b\n" "Exiting Script."
 exit
