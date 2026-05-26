@@ -128,7 +128,7 @@ pause() {
 }
 
 # -----------------------------------------------------------------
-# REPEAT ... repreats, the pattern count number of times.
+# REPEAT ... repeats, the pattern count number of times.
 # usage: varname=$(repeat "40" "_|\_/|_");
 # -----------------------------------------------------------------
 function repeat() {
@@ -255,13 +255,14 @@ place_modpack() {
 		fi
 	done
 
-	local deploy_pack_structure+=(         "/" "README.md")
-		  deploy_pack_structure+=(         "/" "toggle_darktide_mods.bat")
-		  deploy_pack_structure+=(         "/" "toggle_darktide_mods.sh")
+	local deploy_pack_structure=()
+		  deploy_pack_structure+=("/" "README.md")
+		  deploy_pack_structure+=("/" "toggle_darktide_mods.bat")
+		  deploy_pack_structure+=("/" "toggle_darktide_mods.sh")
 		  deploy_pack_structure+=("/binaries/" "mod_loader")
-		  deploy_pack_structure+=(  "/bundle/" "9ba626afa44a3aa3.patch_999")
-		  deploy_pack_structure+=(   "/tools/" "dtkit-patch.exe")
-		  deploy_pack_structure+=(   "/tools/" "README.md")
+		  deploy_pack_structure+=("/bundle/" "9ba626afa44a3aa3.patch_999")
+		  deploy_pack_structure+=("/tools/" "dtkit-patch.exe")
+		  deploy_pack_structure+=("/tools/" "README.md")
 
 	printf "%b\n" "Deploying mod pack structure and core files to game"
 	for ((i=0; i<${#deploy_pack_structure[*]}; i=$(( i + 2 )) )) do
@@ -278,7 +279,7 @@ place_modpack() {
 	printf "%b\n" "Deploying mods to game"
 	cp --preserve=all --recursive --force --target-directory="${steam_link_name}" "${this_pack_name}/mods"
 
-	readarray -t "version" < <(cat "version.txt")
+	readarray -t "version" < "version.txt"
 	printf "%b" "    Mod pack version: ${yellow}${version[0]}-${version[1]}${reset} ... ${green}deployed.${reset}"
 }
 
@@ -294,7 +295,7 @@ yellow="\e[38;5;226m"
 
 # Important Locations
 # game_name="Warhammer 40,000: DARKTIDE"
-steam_common="/home/eric/.local/share/Steam/steamapps/common"
+steam_common="/unified/SteamLibrary/steamapps/common"
 steam_game_home="Warhammer 40,000 DARKTIDE"
 steam_link_name="Link To ${steam_game_home}"
 
@@ -356,7 +357,7 @@ clear
 printf "%b\n" "${blue}${this_pack_name}${reset}"
 
 if [[ "${check}" == "true" ]]; then
-	printf "%s\n" "$(check_mod_working_dirs)"
+	check_mod_working_dirs
 	if [[ "${check}" == "true" ]] && [[ "${remove}" == "true" || "${deploy}" == "true" ]]; then
 		pause "${delay}"
 	fi
