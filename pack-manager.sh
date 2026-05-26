@@ -13,7 +13,7 @@
 #   ./pack-manager.sh --cleanup           Remove duplicate zips, keep latest version
 #   ./pack-manager.sh --rebuild           Rebuild Blue's Darktide Mod Pack/ from source zips/
 #   ./pack-manager.sh --build-pack        Build the distributable zip with versioning
-#   ./pack-manager.sh --update-mod-list   Generate mod_list.txt from source zips/
+#   ./pack-manager.sh mod-list            Generate mod_list.txt from source zips/
 #
 ####################################################################################################
 
@@ -448,7 +448,7 @@ cmd_build_pack() {
 }
 
 ###############################################################################
-# COMMAND: --update-mod-list
+# COMMAND: mod-list
 ###############################################################################
 cmd_update_mod_list() {
 	local list_file="mod_list.txt"
@@ -551,7 +551,7 @@ usage() {
 	printf "%b\n" "  $(basename "${0}") cleanup             Remove duplicate zips"
 	printf "%b\n" "  $(basename "${0}") rebuild             Rebuild mod pack from source zips"
 	printf "%b\n" "  $(basename "${0}") build-pack          Build distributable zip"
-	printf "%b\n" "  $(basename "${0}") update-mod-list     Generate mod_list.txt"
+	printf "%b\n" "  $(basename "${0}") mod-list            Generate mod_list.txt"
 }
 
 # clear
@@ -581,7 +581,7 @@ case "${1}" in
 	cleanup)          cmd_cleanup ;;
 	rebuild)          cmd_rebuild ;;
 	build-pack)       cmd_build_pack ;;
-	update-mod-list)  cmd_update_mod_list ;;
+	mod-list)         cmd_update_mod_list ;;
 	help|-h)          usage; exit 0 ;;
 	*)                error "Unknown command: ${1}"; exit 1 ;;
 esac
