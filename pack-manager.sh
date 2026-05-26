@@ -582,7 +582,7 @@ case "${1}" in
 	rebuild)          cmd_rebuild ;;
 	build-pack)       cmd_build_pack ;;
 	mod-list)         cmd_update_mod_list ;;
-	help|-h)          usage; exit 0 ;;
+	help|--help|-h)   usage; exit 0 ;;
 	*)                error "Unknown command: ${1}"; exit 1 ;;
 esac
 
