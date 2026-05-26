@@ -42,7 +42,12 @@ yellow="\e[38;5;226m"
 # Variables
 # Important Locations
 game_name="Warhammer 40,000: DARKTIDE"
-steam_common="/unified/SteamLibrary/steamapps/common"
+
+# Configurable paths — adjust these for your system
+steam_library="/unified/SteamLibrary"
+
+# Derived paths — do not change
+steam_common="${steam_library}/steamapps/common"
 steam_game_home="Warhammer 40,000 DARKTIDE"
 steam_link_name="Link To ${steam_game_home}"
 
@@ -114,13 +119,13 @@ readarray -t "apply_mod_zips" < <(find "./${import}/" -maxdepth "1" -type "f" -n
 # if >0 zips in import, make working directory
 if (( ${#apply_mod_zips[*]} > 0 )); then
 	if [[ -d "${working}" ]]; then
-		if (( $(find "./${working}/" -maxdepth "1" 2>/dev/null | grep -c "") > 1 )); then
+		if (( $(find "./${working}/" -mindepth 1 -maxdepth "1" 2>/dev/null | wc -l) > 0 )); then
 			error "Working directory found and not empty, continuing to process previous run."
 		else
 			error "Empty working directory found."
 			printf "%b\n" "Removing and exiting: ${cyan}${working}${reset}"
-			rm -rf ${working}
-			"exit"
+			rm -rf "${working}"
+			exit 1
 		fi
 	else
 		printf "%b" "Making directory: ${cyan}${working}${reset} ... "
@@ -133,10 +138,6 @@ for ((z=0; z<${#apply_mod_zips[*]}; z++)) do
 	if (( z == 0 )); then
     	printf "%b\n" "----------------------------------------------------------------------------------------------------"
     fi
-
-	# Read working directory before extracting zip
-	working_dir_listing_before=()
-	readarray -t "working_dir_listing_before" < <(find "./${working}/" -maxdepth "1" -type "d" 2>/dev/null | sort | cut -d/ -f3-)
 
 	# step 3: process each zip
 	printf "%b\n" "Processing zip: ${yellow}${apply_mod_zips[z]}${reset}"
@@ -152,28 +153,12 @@ for ((z=0; z<${#apply_mod_zips[*]}; z++)) do
 	fi
 	# pause
 
-	# Read working directory after extracting zip
-	working_dir_listing_after=()
-	readarray -t "working_dir_listing_after" < <(find "./$working/" -maxdepth "1" -type "d" 2>/dev/null | sort | cut -d/ -f3-)
-
 	# step 4: Get unzipped mod directory name
-	before=${#working_dir_listing_before[*]}
-	after=${#working_dir_listing_after[*]}
-	if (( after > before )); then
-		for ((i=1; i<(after - before) ; i++)) do
-			working_dir_listing_before+=("")
-		done
-	fi
-
+	readarray -t "working_dirs" < <(find "./${working}/" -mindepth 1 -maxdepth 1 -type "d" 2>/dev/null)
 	apply_mod_directory_name=""
-	for ((i=1; i<after; i++)) do
-		if [[ "${working_dir_listing_after[i]}" != "${working_dir_listing_before[i]}" ]]; then
-			apply_mod_directory_name="$(printf "%s\n" "${working_dir_listing_after[i]}" | rev | cut -d/ -f1 | rev)"
-			if [[ -n "${apply_mod_directory_name}" ]]; then
-				break
-			fi
-		fi
-	done
+	if (( ${#working_dirs[*]} == 1 )); then
+		apply_mod_directory_name="$(basename "${working_dirs[0]}")"
+	fi
 
 	if [[ -z "${apply_mod_directory_name}" ]]; then
 		error "Unable to detect mod's directory name in working directory (${cyan}${user_home}/${games}/${working}${reset})" "exit"
@@ -242,7 +227,7 @@ done
 
 if [[ -d "${working}" ]]; then
 	printf "%b\n" "Removing directory: ${cyan}${working}${reset}"
-	rm -rf ${working}
+	rm -rf "${working}"
 fi
 
 
@@ -315,7 +300,7 @@ fi
 
 version=()
 if [[ -f "version.txt" ]]; then
-	readarray -t "version" < <(cat "version.txt")
+	readarray -t "version" < "version.txt"
 fi
 
 last_version_date=""
@@ -370,6 +355,7 @@ fi
 # step 9: zip up pack
 printf "%b\n" "Zipping mod pack"
 if [[ -d "${mod_pack_home}" ]]; then
+	[[ -f "${this_pack_name} ${new_version_date}${new_version_letter}.zip" ]] && rm -f "${this_pack_name} ${new_version_date}${new_version_letter}.zip"
 	zip -rq "${this_pack_name} ${new_version_date}${new_version_letter}.zip" "${mod_pack_home}"
 	if [[ -f "${this_pack_name} ${new_version_date}${new_version_letter}.zip" ]]; then
 		sha256sum "${this_pack_name} ${new_version_date}${new_version_letter}.zip" > "${this_pack_name} ${new_version_date}${new_version_letter}.zip.sha256"
