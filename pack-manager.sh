@@ -407,7 +407,7 @@ cmd_cleanup() {
 		   [[ "${mod_id}" == "${next_id}" ]]; then
 			printf "%b\n" "  Removing older: ${yellow}${filename}${reset} (keeping ${cyan}${nextfile}${reset})"
 			rm "${source_zips[i]}"
-			((removed_count++))
+			((++removed_count))
 		fi
 	done
 
@@ -507,7 +507,7 @@ cmd_build_pack() {
 	local zip_count=0
 	while IFS= read -r -d '' z; do
 		cp "${z}" "${build_dir}/"
-		((zip_count++))
+		((++zip_count))
 	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null | sort -z)
 
 	cp "./mod_list.txt" "${build_dir}/"
