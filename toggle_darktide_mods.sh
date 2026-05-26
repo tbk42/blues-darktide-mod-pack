@@ -4,34 +4,23 @@
 # 
 # First things first, exit the game!
 # 
-# Run this script to activate the ability to use mods in Darktide.
+# Run this script to activate or deactivate mods in Darktide.
 # 
-# This script locates Darktide on your drive. If needed and available locally (in the same directory
-# as this script), it will copy in the Darktide Mod Loader, Darktide Mod Framework, and Auto Mod
-# Loading and Ordering. Together, these three mods make using mods in Darktide possible, consistent,
-# and easy to manage. I did not create nor do I maintain any of these. They are the IP of their
-# respective authors. My script just makes it as easy as I can for you, the player, by automating
-# detection and deploymeent. In other words, run this script and it does the minimal work for you.
-# Nexus Mods prevents us from automatically downloading the latest copy, so if you need them, here
-# are the URLs for each of the mods. Place the three zips in the same directory as this script, then
-# run this script.
+# This script locates Darktide on your drive and deploys the mod pack or individual
+# core mods (DML, DMF, AMLAO) to the game directory. It then runs the Darktide Mod
+# Loader's patcher to toggle mod support on or off. I did not create nor do I maintain
+# any of these mods — they are the IP of their respective authors. My script just
+# automates detection and deployment.
 # 
+# Preferred deployment: place "Blue's Darktide Mod Pack*.zip" next to this script.
+# The mod pack is a complete deployment containing everything needed.
+# 
+# Fallback: place the three individual mod zips in the same directory as this script.
 #   Darktide Mod Loader ------------- https://www.nexusmods.com/warhammer40kdarktide/mods/19
 #   Darktide Mod Framework ---------- https://www.nexusmods.com/warhammer40kdarktide/mods/8
 #   Auto Mod Loading and Ordering --- https://www.nexusmods.com/warhammer40kdarktide/mods/246
 # 
-# After seeing that these three are deployed, this script checks for a mod pack zip and compares it
-# to the current mod deployment. If the mod directory is otherwise empty (except the three
-# previously mentioned mods) then it deploys the pack from the zip) into the game's mod directory.
-# 
-# Most importantly, this script will trigger the Darktide Mod Loader's patcher.
-# 
-# The patcher will pop up a dialog on your screen either notifying you that it activated the patch,
-# or asking if you want to remove the patch or not.
-# 
-# Once activated, the mods load with the game.
-# 
-# To toggle ALL mods back off entirely, run this script again to activate the unpatch feature. 
+# Run this script again to toggle mods back off via the patcher. 
 # 
 ####################################################################################################
 
@@ -81,9 +70,61 @@ function find_darktide_in() {
 	return 0
 }
 
-# deploy_loader() {}
-# deploy_framework() {}
-# deploy_ordering() {}
+function find_zip_in_search_paths() {
+	local pattern="${1}"
+	local search_paths=()
+	search_paths+=("${PWD}")
+	search_paths+=("$(dirname "${0}")")
+	search_paths+=("$(dirname "$(realpath "${0}")")")
+
+	for search_path in "${search_paths[@]}"; do
+		if [[ ! -d "${search_path}" ]]; then continue; fi
+		local found=
+		found="$(find "${search_path}" -maxdepth 1 -type "f" -name "${pattern}" -print -quit 2>/dev/null)"
+		if [[ -n "${found}" ]]; then
+			printf "%s\n" "${found}"
+			return 0
+		fi
+	done
+	printf "%s\n" ""
+	return 1
+}
+
+function deploy_zip_to_game() {
+	local zip_file="${1}"
+	local display_name="${2}"
+	local target="${3:-${darktide_found_dir}}"
+	if [[ -z "${zip_file}" ]] || [[ ! -f "${zip_file}" ]]; then
+		printf "%b\n" "    ${display_name} zip not found at '${zip_file}'."
+		return 1
+	fi
+	printf "%b" "    Extracting ${display_name} ... "
+	unzip -qo "${zip_file}" -d "${target}"
+	local ret=$?
+	if (( ret == 0 )); then
+		printf "%b\n" "done."
+	else
+		printf "%b\n" "failed (exit code ${ret})."
+	fi
+	return ${ret}
+}
+
+function clean_mod_loader() {
+	printf "%b\n" "    Cleaning up old Darktide Mod Loader files ..."
+	local items=()
+	items+=("binaries/mod_loader")
+	items+=("bundle/9ba626afa44a3aa3.patch_999")
+	items+=("mods/base")
+	items+=("tools/dtkit-patch.exe")
+	for item in "${items[@]}"; do
+		if [[ -f "${darktide_found_dir}/${item}" ]]; then
+			rm -f "${darktide_found_dir}/${item}"
+		elif [[ -d "${darktide_found_dir}/${item}" ]]; then
+			rm -rf "${darktide_found_dir}/${item}"
+		fi
+	done
+	printf "%b\n" "    done."
+}
 
 ### Main Script ###
 current_find_args=("-type" "d" "-name" "Warhammer 40,000 DARKTIDE")
@@ -176,104 +217,71 @@ function check_for_mod_loader() {
 	return 0
 }
 
-dml_zip_filename="$(find ./ -maxdepth 1 -type "f" -name "Darktide Mod Loader-19-*.zip" -print -quit 2>/dev/null | cut -d/ -f2)"
-dmf_zip_filename="$(find ./ -maxdepth 1 -type "f" -name "Darktide Mod Framework-8-*.zip" -print -quit 2>/dev/null | cut -d/ -f2)"
-amlao_zip_filename="$(find ./ -maxdepth 1 -type "f" -name "Auto Mod Loading and Ordering-246-*.zip" -print -quit 2>/dev/null | cut -d/ -f2)"
+### Search for mod pack and individual core mod zips ###
+printf "%b\n" "Searching for mod pack and core mod zip files ..."
+mod_pack_zip="$(find_zip_in_search_paths "Blue's Darktide Mod Pack*.zip")"
+dml_zip="$(find_zip_in_search_paths "Darktide Mod Loader-19-*.zip")"
+dmf_zip="$(find_zip_in_search_paths "Darktide Mod Framework-8-*.zip")"
+amlao_zip="$(find_zip_in_search_paths "Auto Mod Loading and Ordering-246-*.zip")"
 
-dml_flag="$(check_for_mod_loader "${darktide_found_dir}")"
-if [[ "${dml_flag}" == "false" ]]; then
-	if [[ -n "${dml_zip_filename}" ]]; then
-	else
-	fi
-else
-fi
-
-
-
-
-# Check for Darktide Mod Loader
-# Set up Mod Loader array
-mod_loader=()
-mod_loader+=("d" "binaries")
-mod_loader+=("f" "binaries/mod_loader")
-mod_loader+=("d" "bundle")
-mod_loader+=("f" "bundle/9ba626afa44a3aa3.patch_999")
-mod_loader+=("d" "mods")
-mod_loader+=("d" "mods/base")
-mod_loader+=("f" "mods/base/mod_manager.lua")
-mod_loader+=("d" "tools")
-mod_loader+=("f" "tools/dtkit-patch.exe")
-
-# Check the mod_loader array to be sure everything is there.
-dml_flag=0
-for i in "${!mod_loader[@]}"; do
-    t=${mod_loader[$i]}
-    if (( i+1 < ${#mod_loader[@]} )); then
-        o=${mod_loader[$((i+1))]}
-    else
-        o=""
-    fi
-	if [[ "${t}" == "d" ]]; then
-		if [[ -d "${o}" ]]; then
-			((dml_flag++))
-		fi
-	elif [[ "${t}" == "f" ]]; then
-		if [[ -f "${o}" ]]; then
-			((dml_flag++))
-		fi
-	fi
-done
-
-if (( dml_flag != ${#mod_loader[@]} )); then
+### Mod Pack (full deployment) ###
+if [[ -n "${mod_pack_zip}" ]]; then
+	printf "%b\n" "Mod pack found. Deploying full mod pack to game directory ..."
 	clean_mod_loader
-	deploy_mod_loader
-fi
+	deploy_zip_to_game "${mod_pack_zip}" "Mod pack"
+else
+	printf "%b\n" "No mod pack zip found. Deploying from individual mod zips ..."
 
-
-
-if [[ "${exit_flag}" == "true" ]]; then
-	printf "%s\n" "I could not find the patcher or required directories and files, unable to run."
-	printf "%s\n" "I am in ${PWD}"
-	exit 1
-fi
-
-
-
-
-# Check for Darktide Mod Framework
-# Check for Auto Mod Loading and Ordering
-
-
-
-
-
-
-
-
-# Check the mod_loader array to be sure everything is there.
-exit_flag="false"
-for i in "${!mod_loader[@]}"; do
-    t=${mod_loader[$i]}
-    if (( i+1 < ${#mod_loader[@]} )); then
-        o=${mod_loader[$((i+1))]}
-    else
-        o=""
-    fi
-	if [[ "${t}" == "d" ]]; then
-		if [[ ! -d "${o}" ]]; then
-			printf "%b\n" "I could not find the ${o} directory"
-			exit_flag="true"
+	### Darktide Mod Loader ###
+	dml_deployed="$(check_for_mod_loader "${darktide_found_dir}")"
+	if [[ "${dml_deployed}" == "false" ]]; then
+		if [[ -n "${dml_zip}" ]]; then
+			printf "%b\n" "Darktide Mod Loader is not deployed. Installing from zip ..."
+			clean_mod_loader
+			deploy_zip_to_game "${dml_zip}" "Darktide Mod Loader"
+		else
+			printf "%b\n" "Darktide Mod Loader is not deployed and no zip was found."
+			printf "%b\n" "  Download from: https://www.nexusmods.com/warhammer40kdarktide/mods/19"
+			printf "%b\n" "  Place the zip next to this script and run again."
+			pause
 		fi
-	elif [[ "${t}" == "f" ]]; then
-		if [[ ! -f "${o}" ]]; then
-			printf "%b\n" "I could not find the file named ${o}"
-			exit_flag="true"
-		fi
+	else
+		printf "%b\n" "Darktide Mod Loader is already deployed."
 	fi
-done
-if [[ "${exit_flag}" == "true" ]]; then
-	printf "%s\n" "I could not find the patcher or required directories and files, unable to run."
-	printf "%s\n" "I am in ${PWD}"
+
+	### Darktide Mod Framework ###
+	if [[ ! -d "${darktide_found_dir}/mods/dmf" ]]; then
+		if [[ -n "${dmf_zip}" ]]; then
+			printf "%b\n" "Darktide Mod Framework not found. Installing from zip ..."
+			deploy_zip_to_game "${dmf_zip}" "Darktide Mod Framework" "${darktide_found_dir}/mods"
+		else
+			printf "%b\n" "Darktide Mod Framework zip not found. Skipping."
+			printf "%b\n" "  Download from: https://www.nexusmods.com/warhammer40kdarktide/mods/8"
+		fi
+	else
+		printf "%b\n" "Darktide Mod Framework is already deployed."
+	fi
+
+	### Auto Mod Loading and Ordering ###
+	if [[ ! -f "${darktide_found_dir}/mods/base/base.mod" ]]; then
+		if [[ -n "${amlao_zip}" ]]; then
+			printf "%b\n" "Auto Mod Loading and Ordering not found. Installing from zip ..."
+			deploy_zip_to_game "${amlao_zip}" "Auto Mod Loading and Ordering" "${darktide_found_dir}/mods"
+		else
+			printf "%b\n" "Auto Mod Loading and Ordering zip not found. Skipping."
+			printf "%b\n" "  Download from: https://www.nexusmods.com/warhammer40kdarktide/mods/246"
+		fi
+	else
+		printf "%b\n" "Auto Mod Loading and Ordering is already deployed."
+	fi
+fi
+
+### Validate deployment ###
+printf "%b\n" "Verifying mod loader deployment ..."
+dml_deployed="$(check_for_mod_loader "${darktide_found_dir}")"
+if [[ "${dml_deployed}" == "false" ]]; then
+	printf "%s\n" "Mod loader verification failed. Required files are missing."
+	printf "%s\n" "Exiting."
 	exit 1
 fi
 
