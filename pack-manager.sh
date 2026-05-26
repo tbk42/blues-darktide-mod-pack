@@ -107,7 +107,7 @@ clean_mod_pack_dirs() {
 	mkdir -p "${mod_pack_home}/mods"
 }
 
-version_file="${mod_pack_home}/version.txt"
+version_file="./version.txt"
 
 get_new_version() {
 	local today last_date last_num new_date new_num
@@ -424,6 +424,10 @@ cmd_build_pack() {
 	local pack_sha="${pack_zip}.sha256"
 
 	printf "%b\n" "Building pack: ${cyan}${pack_zip}${reset}"
+
+	# Generate fresh mod list and include it in the pack
+	cmd_update_mod_list
+	cp "./mod_list.txt" "${mod_pack_home}/mod_list.txt"
 
 	# Move old packs to previous
 	while IFS= read -r -d '' old_zip; do
