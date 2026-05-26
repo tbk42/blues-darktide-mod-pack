@@ -488,15 +488,35 @@ cmd_build_pack() {
 
 	printf "%b\n" "Building pack: ${cyan}${pack_zip}${reset}"
 
-	# Generate fresh mod list and include it in the pack
+	# Generate fresh mod list
 	cmd_update_mod_list
-	cp "./mod_list.txt" "${mod_pack_home}/mod_list.txt"
 
-	# Move old packs to previous
+	# Find the deploy script (resolve symlink to get actual file)
+	local script_dir deploy_script
+	script_dir="$(dirname "$(realpath "${0}")")"
+	deploy_script="${script_dir}/deploy_darktide_mods.sh"
+	[[ ! -f "${deploy_script}" ]] && deploy_script=""
+
+	# Build pack contents in a temp directory
+	local build_dir
+	build_dir="$(mktemp -d "./${working}/pack-build.XXXXXX")"
+
+	local zip_count=0
+	while IFS= read -r -d '' z; do
+		cp "${z}" "${build_dir}/"
+		((zip_count++))
+	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null | sort -z)
+
+	cp "./mod_list.txt" "${build_dir}/"
+
+	if [[ -n "${deploy_script}" ]]; then
+		cp "${deploy_script}" "${build_dir}/"
+		printf "%b\n" "  Included deploy script: ${cyan}$(basename "${deploy_script}")${reset}"
+	fi
+
+	# Archive old packs to previous
 	while IFS= read -r -d '' old_zip; do
-		local filename
-		filename="$(basename "${old_zip}")"
-		printf "%b\n" "  Archiving old pack: ${yellow}${filename}${reset}"
+		printf "%b\n" "  Archiving old pack: ${yellow}$(basename "${old_zip}")${reset}"
 		mv "${old_zip}" "${previous}/"
 	done < <(find "./" -maxdepth "1" -type "f" -name "${this_pack_name}*.zip" -print0 2>/dev/null)
 
@@ -504,18 +524,19 @@ cmd_build_pack() {
 		mv "${old_sha}" "${previous}/"
 	done < <(find "./" -maxdepth "1" -type "f" -name "${this_pack_name}*.sha256" -print0 2>/dev/null)
 
-	# Zip the pack
-	if [[ -d "${mod_pack_home}" ]]; then
-		[[ -f "${pack_zip}" ]] && rm -f "${pack_zip}"
-		zip -rq "${pack_zip}" "${mod_pack_home}"
-		if [[ -f "${pack_zip}" ]]; then
-			sha256sum "${pack_zip}" > "${pack_sha}"
-			printf "%b\n" "  Created: ${green}${pack_zip}${reset}"
-			printf "%b\n" "  SHA256:  ${cyan}$(cut -d' ' -f1 < "${pack_sha}")${reset}"
-		fi
+	# Zip the build directory
+	[[ -f "${pack_zip}" ]] && rm -f "${pack_zip}"
+	(cd "${build_dir}" && zip -rq "${OLDPWD}/${pack_zip}" .)
+	if [[ -f "${pack_zip}" ]]; then
+		sha256sum "${pack_zip}" > "${pack_sha}"
+		printf "%b\n" "  Zips included: ${green}${zip_count}${reset}"
+		printf "%b\n" "  Created: ${green}${pack_zip}${reset}"
+		printf "%b\n" "  SHA256:  ${cyan}$(cut -d' ' -f1 < "${pack_sha}")${reset}"
 	fi
 
-	# Changelog output
+	# Clean up
+	rm -rf "${build_dir}"
+
 	printf "%b\n" ""
 	printf "%b\n" "Version: ${version}"
 	printf "%b\n" "Pack ready for distribution."
