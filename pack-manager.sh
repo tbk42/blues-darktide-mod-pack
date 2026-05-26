@@ -73,6 +73,42 @@ is_numeric() {
 	printf "true"
 }
 
+parse_mod_name() {
+	local filename="${1}"
+	local base="${filename%.zip}"
+	local name_parts=()
+	local found_id=false
+
+	IFS='-' read -ra parts <<< "${base}"
+	for part in "${parts[@]}"; do
+		if [[ "${found_id}" == false ]] && [[ "$(is_numeric "${part}")" == "true" ]]; then
+			found_id=true
+		elif [[ "${found_id}" == false ]]; then
+			name_parts+=("${part}")
+		fi
+	done
+
+	local name="${name_parts[0]}"
+	for ((i=1; i<${#name_parts[*]}; i++)); do
+		name+="-${name_parts[i]}"
+	done
+	printf "%s" "${name}"
+}
+
+parse_mod_id() {
+	local filename="${1}"
+	local base="${filename%.zip}"
+
+	IFS='-' read -ra parts <<< "${base}"
+	for part in "${parts[@]}"; do
+		if [[ "$(is_numeric "${part}")" == "true" ]]; then
+			printf "%s" "${part}"
+			return
+		fi
+	done
+	printf ""
+}
+
 ensure_dirs() {
 	mkdir -p "${import}" "${zips}" "${mod_pack_home}/mods" "${previous}"
 }
@@ -252,7 +288,7 @@ cmd_import() {
 cmd_remove() {
 	local search="${1:-}"
 	if [[ -z "${search}" ]]; then
-		error "Usage: pack-manager.sh remove <partial_zip_name>"
+		error "Usage: pack-manager.sh remove <partial_mod_name>"
 		return
 	fi
 
@@ -260,25 +296,25 @@ cmd_remove() {
 
 	local found_zips=()
 	while IFS= read -r -d '' zip_file; do
-		local filename
+		local filename name mod_id
 		filename="$(basename "${zip_file}")"
-		if [[ "${filename,,}" == *"${search,,}"* ]]; then
+		name="$(parse_mod_name "${filename}")"
+		if [[ "${name,,}" == *"${search,,}"* ]]; then
 			found_zips+=("${zip_file}")
 		fi
 	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null)
 
 	if (( ${#found_zips[*]} == 0 )); then
-		error "No zips matching '${search}' found in ${zips}/"
+		error "No mods matching '${search}' found in ${zips}/"
 		return
 	fi
 
 	for zip_path in "${found_zips[@]}"; do
-		local filename
+		local filename mod_dir
 		filename="$(basename "${zip_path}")"
-		printf "%b\n" "Removing: ${yellow}${filename}${reset}"
+		printf "%b\n" "Removing: ${yellow}$(parse_mod_name "${filename}")${reset}"
 
 		# Find directory name inside zip
-		local mod_dir
 		mod_dir=$(unzip -l "${zip_path}" 2>/dev/null | grep -E "^.*/[^/]+/$" | head -1 | awk '{print $4}' | cut -d/ -f1) || true
 
 		if [[ -n "${mod_dir}" ]]; then
@@ -479,31 +515,10 @@ cmd_update_mod_list() {
 	local other_urls=()
 
 	while IFS= read -r -d '' zip_file; do
-		local filename
+		local filename name mod_id
 		filename="$(basename "${zip_file}")"
-
-		local base="${filename%.zip}"
-		local mod_id=""
-		local name_parts=()
-		local found_id=false
-
-		IFS='-' read -ra parts <<< "${base}"
-		for part in "${parts[@]}"; do
-			if [[ "${found_id}" == false ]] && [[ "$(is_numeric "${part}")" == "true" ]]; then
-				mod_id="${part}"
-				found_id=true
-			elif [[ "${found_id}" == false ]]; then
-				name_parts+=("${part}")
-			fi
-		done
-
-		local name=""
-		if (( ${#name_parts[*]} > 0 )); then
-			name="${name_parts[0]}"
-			for ((i=1; i<${#name_parts[*]}; i++)); do
-				name+="-${name_parts[i]}"
-			done
-		fi
+		name="$(parse_mod_name "${filename}")"
+		mod_id="$(parse_mod_id "${filename}")"
 
 		local url=""
 		if [[ "$(is_numeric "${mod_id}")" == "true" ]]; then
