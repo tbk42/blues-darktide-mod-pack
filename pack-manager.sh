@@ -409,6 +409,10 @@ cmd_rebuild() {
 		unzip -qo "${zip_file}" -d "${mod_pack_home}/mods"
 	done
 
+	# Regenerate mod list in the pack directory (clean_mod_pack_dirs removed it)
+	cmd_update_mod_list
+	cp "./mod_list.txt" "${mod_pack_home}/mod_list.txt"
+
 	printf "%b\n" "Rebuild complete."
 }
 
