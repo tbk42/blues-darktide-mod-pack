@@ -246,7 +246,7 @@ cmd_import() {
 cmd_remove() {
 	local search="${1:-}"
 	if [[ -z "${search}" ]]; then
-		error "Usage: pack-manager.sh --remove <partial_zip_name>"
+		error "Usage: pack-manager.sh remove <partial_zip_name>"
 		return
 	fi
 
@@ -546,15 +546,16 @@ cmd_update_mod_list() {
 ###############################################################################
 usage() {
 	printf "%b\n" "Usage:"
-	printf "%b\n" "  $(basename "${0}") import                Import new mod zips from import/"
-	printf "%b\n" "  $(basename "${0}") --remove <name>       Remove mod by partial zip name"
-	printf "%b\n" "  $(basename "${0}") --cleanup             Remove duplicate zips"
-	printf "%b\n" "  $(basename "${0}") --rebuild             Rebuild mod pack from source zips"
-	printf "%b\n" "  $(basename "${0}") --build-pack          Build distributable zip"
-	printf "%b\n" "  $(basename "${0}") --update-mod-list     Generate mod_list.txt"
+	printf "%b\n" "  $(basename "${0}") import              Import new mod zips from import/"
+	printf "%b\n" "  $(basename "${0}") remove <name>       Remove mod by partial zip name"
+	printf "%b\n" "  $(basename "${0}") cleanup             Remove duplicate zips"
+	printf "%b\n" "  $(basename "${0}") rebuild             Rebuild mod pack from source zips"
+	printf "%b\n" "  $(basename "${0}") build-pack          Build distributable zip"
+	printf "%b\n" "  $(basename "${0}") update-mod-list     Generate mod_list.txt"
 }
 
-clear
+# clear
+printf "%s\n" ""
 printf "%b\n" "${blue}${this_pack_name} - Pack Manager${reset}"
 printf "%s\n" ""
 
@@ -575,14 +576,14 @@ if [[ ! -d "${import}" ]] && [[ ! -d "${zips}" ]] && [[ ! -d "${mod_pack_home}" 
 fi
 
 case "${1}" in
-	import)             cmd_import ;;
-	--remove)           shift; cmd_remove "${@}" ;;
-	--cleanup)          cmd_cleanup ;;
-	--rebuild)          cmd_rebuild ;;
-	--build-pack)       cmd_build_pack ;;
-	--update-mod-list)  cmd_update_mod_list ;;
-	--help|-h)          usage; exit 0 ;;
-	*)                  error "Unknown command: ${1}"; exit 1 ;;
+	import)           cmd_import ;;
+	remove)           shift; cmd_remove "${@}" ;;
+	cleanup)          cmd_cleanup ;;
+	rebuild)          cmd_rebuild ;;
+	build-pack)       cmd_build_pack ;;
+	update-mod-list)  cmd_update_mod_list ;;
+	help|-h)          usage; exit 0 ;;
+	*)                error "Unknown command: ${1}"; exit 1 ;;
 esac
 
 printf "%b\n" "${green}Done.${reset}"
