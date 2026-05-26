@@ -294,19 +294,48 @@ cmd_remove() {
 
 	ensure_dirs
 
+	local protected_names=()
+	protected_names+=("Darktide Mod Loader")
+	protected_names+=("Darktide Mod Framework")
+	protected_names+=("Auto Mod Loading and Ordering")
+
 	local found_zips=()
 	while IFS= read -r -d '' zip_file; do
-		local filename name mod_id
+		local filename name
 		filename="$(basename "${zip_file}")"
 		name="$(parse_mod_name "${filename}")"
+
+		# Skip protected core mods
+		local protected=false
+		for p in "${protected_names[@]}"; do
+			if [[ "${name}" == "${p}" ]]; then
+				protected=true
+				break
+			fi
+		done
+		[[ "${protected}" == true ]] && continue
+
 		if [[ "${name,,}" == *"${search,,}"* ]]; then
 			found_zips+=("${zip_file}")
 		fi
 	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null)
 
 	if (( ${#found_zips[*]} == 0 )); then
-		error "No mods matching '${search}' found in ${zips}/"
+		error "No removable mods matching '${search}' found."
 		return
+	fi
+
+	if (( ${#found_zips[*]} > 1 )); then
+		printf "%b\n" "Multiple mods match '${search}':"
+		for z in "${found_zips[@]}"; do
+			printf "%b\n" "  ${yellow}$(parse_mod_name "$(basename "${z}")")${reset}"
+		done
+		printf "%b" "Remove all listed mods? [y/N] "
+		read -r confirm
+		if [[ "${confirm,,}" != "y" ]]; then
+			printf "%b\n" "Cancelled."
+			return
+		fi
 	fi
 
 	for zip_path in "${found_zips[@]}"; do
@@ -314,23 +343,19 @@ cmd_remove() {
 		filename="$(basename "${zip_path}")"
 		printf "%b\n" "Removing: ${yellow}$(parse_mod_name "${filename}")${reset}"
 
-		# Find directory name inside zip
 		mod_dir=$(unzip -l "${zip_path}" 2>/dev/null | grep -E "^.*/[^/]+/$" | head -1 | awk '{print $4}' | cut -d/ -f1) || true
 
 		if [[ -n "${mod_dir}" ]]; then
-			# Remove from mod pack
 			if [[ -d "${mod_pack_home}/mods/${mod_dir}" ]]; then
 				rm -rf "${mod_pack_home}/mods/${mod_dir}"
 				printf "%b\n" "  Removed from pack: ${cyan}${mod_dir}${reset}"
 			fi
-			# Remove from game
 			if [[ -d "${steam_link_name}/mods/${mod_dir}" ]]; then
 				rm -rf "${steam_link_name}/mods/${mod_dir}"
 				printf "%b\n" "  Removed from game: ${cyan}${mod_dir}${reset}"
 			fi
 		fi
 
-		# Remove the zip
 		rm -f "${zip_path}"
 		printf "%b\n" "  Deleted zip."
 	done
