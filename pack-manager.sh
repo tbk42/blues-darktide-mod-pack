@@ -457,6 +457,12 @@ cmd_update_mod_list() {
 
 	> "${list_file}"
 
+	local dml_entry=""
+	local dmf_entry=""
+	local amlao_entry=""
+	local other_names=()
+	local other_urls=()
+
 	while IFS= read -r -d '' zip_file; do
 		local filename
 		filename="$(basename "${zip_file}")"
@@ -476,7 +482,6 @@ cmd_update_mod_list() {
 			fi
 		done
 
-		# Reconstruct name by joining name_parts with the separator they had
 		local name=""
 		if (( ${#name_parts[*]} > 0 )); then
 			name="${name_parts[0]}"
@@ -490,10 +495,48 @@ cmd_update_mod_list() {
 			url="https://www.nexusmods.com/warhammer40kdarktide/mods/${mod_id}"
 		fi
 
-		printf "%s\n" "${name}" >> "${list_file}"
-		printf "%s\n" "${url}" >> "${list_file}"
+		case "${name}" in
+			"Darktide Mod Loader")               dml_entry="${name}|${url}" ;;
+			"Darktide Mod Framework")            dmf_entry="${name}|${url}" ;;
+			"Auto Mod Loading and Ordering")     amlao_entry="${name}|${url}" ;;
+			*)
+				other_names+=("${name}")
+				other_urls+=("${url}")
+				;;
+		esac
+	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null)
+
+	# Sort others by name (insertion sort keeps other_names/other_urls aligned)
+	for ((i=1; i<${#other_names[*]}; i++)); do
+		local key_name="${other_names[i]}"
+		local key_url="${other_urls[i]}"
+		local j=$(( i - 1 ))
+		while (( j >= 0 )) && [[ "${other_names[j]}" > "${key_name}" ]]; do
+			other_names[j+1]="${other_names[j]}"
+			other_urls[j+1]="${other_urls[j]}"
+			j=$(( j - 1 ))
+		done
+		other_names[j+1]="${key_name}"
+		other_urls[j+1]="${key_url}"
+	done
+
+	# Write in dependency order: DML, DMF, AMLAO, then alphabetical rest
+	for entry in "${dml_entry}" "${dmf_entry}" "${amlao_entry}"; do
+		if [[ -n "${entry}" ]]; then
+			local ename eurl
+			ename="${entry%%|*}"
+			eurl="${entry#*|}"
+			printf "%s\n" "${ename}" >> "${list_file}"
+			printf "%s\n" "${eurl}" >> "${list_file}"
+			printf "%s\n" "" >> "${list_file}"
+		fi
+	done
+
+	for ((i=0; i<${#other_names[*]}; i++)); do
+		printf "%s\n" "${other_names[i]}" >> "${list_file}"
+		printf "%s\n" "${other_urls[i]}" >> "${list_file}"
 		printf "%s\n" "" >> "${list_file}"
-	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null | sort)
+	done
 
 	printf "%b\n" "Wrote ${list_file}"
 }
