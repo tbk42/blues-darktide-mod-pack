@@ -66,7 +66,7 @@ is_numeric() {
 	if [[ "${number}" == "" ]]; then printf "false"; return; fi
 	for ((i=0; i<${#number}; i++)); do
 		case "${number:i:1}" in
-			"0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"-"|"+"|"."|",") ;;
+			"0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9") ;;
 			*) printf "false"; return; ;;
 		esac
 	done
@@ -455,33 +455,34 @@ cmd_update_mod_list() {
 
 	printf "%b\n" "Generating ${list_file} ..."
 
-	# Clear file
 	> "${list_file}"
 
 	while IFS= read -r -d '' zip_file; do
 		local filename
 		filename="$(basename "${zip_file}")"
 
-		# Extract mod name from zip filename (before the Nexus ID number)
-		local name_part
-		name_part="$(printf "%s" "${filename%.zip}" | rev | cut -d- -f4- | rev)"
-		# Clean up trailing dash/space
-		name_part="${name_part%% }"
-		name_part="${name_part%%-}"
+		local base="${filename%.zip}"
+		local mod_id=""
+		local name_parts=()
+		local found_id=false
 
-		# Extract Nexus mod ID
-		local mod_id
-		mod_id="$(printf "%s" "${filename%.zip}" | rev | cut -d- -f3 | rev)"
-
-		# Some zips have different naming patterns; try to extract mod_id
-		if [[ "$(is_numeric "${mod_id}")" != "true" ]]; then
-			# Try alternate: after mod name, before version
-			local temp
-			temp="$(printf "%s" "${filename%.zip}" | cut -d- -f2)"
-			if [[ "$(is_numeric "${temp}")" == "true" ]]; then
-				mod_id="${temp}"
-				name_part="$(printf "%s" "${filename%.zip}" | cut -d- -f1)"
+		IFS='-' read -ra parts <<< "${base}"
+		for part in "${parts[@]}"; do
+			if [[ "${found_id}" == false ]] && [[ "$(is_numeric "${part}")" == "true" ]]; then
+				mod_id="${part}"
+				found_id=true
+			elif [[ "${found_id}" == false ]]; then
+				name_parts+=("${part}")
 			fi
+		done
+
+		# Reconstruct name by joining name_parts with the separator they had
+		local name=""
+		if (( ${#name_parts[*]} > 0 )); then
+			name="${name_parts[0]}"
+			for ((i=1; i<${#name_parts[*]}; i++)); do
+				name+="-${name_parts[i]}"
+			done
 		fi
 
 		local url=""
@@ -489,7 +490,7 @@ cmd_update_mod_list() {
 			url="https://www.nexusmods.com/warhammer40kdarktide/mods/${mod_id}"
 		fi
 
-		printf "%s\n" "${name_part}" >> "${list_file}"
+		printf "%s\n" "${name}" >> "${list_file}"
 		printf "%s\n" "${url}" >> "${list_file}"
 		printf "%s\n" "" >> "${list_file}"
 	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null | sort)
