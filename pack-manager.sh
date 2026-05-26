@@ -484,7 +484,6 @@ cmd_build_pack() {
 	local version
 	version="$(get_new_version)"
 	local pack_zip="${this_pack_name} ${version}.zip"
-	local pack_sha="${pack_zip}.sha256"
 
 	printf "%b\n" "Building pack: ${cyan}${pack_zip}${reset}"
 
@@ -525,13 +524,14 @@ cmd_build_pack() {
 	done < <(find "./" -maxdepth "1" -type "f" -name "${this_pack_name}*.sha256" -print0 2>/dev/null)
 
 	# Zip the build directory
-	[[ -f "${pack_zip}" ]] && rm -f "${pack_zip}"
-	(cd "${build_dir}" && zip -rq "${OLDPWD}/${pack_zip}" .)
-	if [[ -f "${pack_zip}" ]]; then
-		sha256sum "${pack_zip}" > "${pack_sha}"
+	local pack_path="${PWD}/${pack_zip}"
+	[[ -f "${pack_path}" ]] && rm -f "${pack_path}"
+	(cd "${build_dir}" && zip -rq "${pack_path}" .)
+	if [[ -f "${pack_path}" ]]; then
+		sha256sum "${pack_path}" > "${pack_path}.sha256"
 		printf "%b\n" "  Zips included: ${green}${zip_count}${reset}"
 		printf "%b\n" "  Created: ${green}${pack_zip}${reset}"
-		printf "%b\n" "  SHA256:  ${cyan}$(cut -d' ' -f1 < "${pack_sha}")${reset}"
+		printf "%b\n" "  SHA256:  ${cyan}$(cut -d' ' -f1 < "${pack_path}.sha256")${reset}"
 	fi
 
 	# Clean up
