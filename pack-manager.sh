@@ -110,7 +110,7 @@ parse_mod_id() {
 }
 
 ensure_dirs() {
-	mkdir -p "${import}" "${zips}" "${mod_pack_home}/mods" "${previous}"
+	mkdir -p "${import}" "${zips}" "${mod_pack_home}/mods" "${previous}" "${working}"
 }
 
 ensure_steam_link() {
