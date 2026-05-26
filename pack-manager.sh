@@ -380,7 +380,7 @@ cmd_rebuild() {
 			Auto\ Mod\ Loading\ and\ Ordering-246-*) amlao_zip="${zip_file}" ;;
 			*) other_zips+=("${zip_file}") ;;
 		esac
-	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null)
+	done < <(find "./${zips}/" -maxdepth "1" -type "f" -name "*.zip" -print0 2>/dev/null | sort -z)
 
 	# Deploy DML to pack root
 	if [[ -n "${dml_zip}" ]]; then
