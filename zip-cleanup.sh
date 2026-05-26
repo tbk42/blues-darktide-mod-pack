@@ -21,7 +21,8 @@ if [[ -d "./source zips" ]]; then
 		filename="${source_zips[i]}"
 		printf "%b\n" "Processing \e[38;2;255;128;128m${filename}\e[0m"
 
-		temp="$(printf "%s\n" "${filename}" | rev | cut -b15- | rev)"
+		base="${filename%.zip}"
+		temp="${base%-*}"
 		mod_name="$(printf "%s\n" "${temp}" | cut -d- -f1)"
 		mod_id="$(printf "%s\n" "${temp}" | cut -d- -f2)"
 		# mod_ver="$(printf "%s\n" "${temp}" | cut -d- -f3-)"
@@ -34,7 +35,8 @@ if [[ -d "./source zips" ]]; then
 				nextfile=${source_zips[i+1]}
 			fi
 			if [[ -n "${nextfile}" ]]; then
-				temp="$(printf "%s\n" "${nextfile}" | rev | cut -b15- | rev)"
+					base="${nextfile%.zip}"
+			temp="${base%-*}"
 				next_name="$(printf "%s\n" "${temp}" | cut -d- -f1)"
 				next_id="$(printf "%s\n" "${temp}" | cut -d- -f2)"
 				# next_ver="$(printf "%s\n" "${temp}" | cut -d- -f3-)"
