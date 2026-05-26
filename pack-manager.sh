@@ -325,17 +325,15 @@ cmd_remove() {
 		return
 	fi
 
-	if (( ${#found_zips[*]} > 1 )); then
-		printf "%b\n" "Multiple mods match '${search}':"
-		for z in "${found_zips[@]}"; do
-			printf "%b\n" "  ${yellow}$(parse_mod_name "$(basename "${z}")")${reset}"
-		done
-		printf "%b" "Remove all listed mods? [y/N] "
-		read -r confirm
-		if [[ "${confirm,,}" != "y" ]]; then
-			printf "%b\n" "Cancelled."
-			return
-		fi
+	printf "%b\n" "Mods matching '${search}':"
+	for z in "${found_zips[@]}"; do
+		printf "%b\n" "  ${yellow}$(parse_mod_name "$(basename "${z}")")${reset}"
+	done
+	printf "%b" "Remove ${#found_zips[*]} mod(s)? [y/N] "
+	read -r confirm
+	if [[ "${confirm,,}" != "y" ]]; then
+		printf "%b\n" "Cancelled."
+		return
 	fi
 
 	for zip_path in "${found_zips[@]}"; do
