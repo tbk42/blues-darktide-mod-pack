@@ -544,11 +544,7 @@ cmd_update_mod_list() {
 ###############################################################################
 # Main
 ###############################################################################
-clear
-printf "%b\n" "${blue}${this_pack_name} - Pack Manager${reset}"
-printf "%s\n" ""
-
-if (( $# == 0 )); then
+usage() {
 	printf "%b\n" "Usage:"
 	printf "%b\n" "  $(basename "${0}") import                Import new mod zips from import/"
 	printf "%b\n" "  $(basename "${0}") --remove <name>       Remove mod by partial zip name"
@@ -556,6 +552,14 @@ if (( $# == 0 )); then
 	printf "%b\n" "  $(basename "${0}") --rebuild             Rebuild mod pack from source zips"
 	printf "%b\n" "  $(basename "${0}") --build-pack          Build distributable zip"
 	printf "%b\n" "  $(basename "${0}") --update-mod-list     Generate mod_list.txt"
+}
+
+clear
+printf "%b\n" "${blue}${this_pack_name} - Pack Manager${reset}"
+printf "%s\n" ""
+
+if (( $# == 0 )); then
+	usage
 	exit 0
 fi
 
@@ -577,7 +581,7 @@ case "${1}" in
 	--rebuild)          cmd_rebuild ;;
 	--build-pack)       cmd_build_pack ;;
 	--update-mod-list)  cmd_update_mod_list ;;
-	--help|-h)          printf "%b\n" "Run without arguments to see usage." ;;
+	--help|-h)          usage; exit 0 ;;
 	*)                  error "Unknown command: ${1}"; exit 1 ;;
 esac
 
