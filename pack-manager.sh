@@ -222,6 +222,12 @@ cmd_import() {
 		# Also deploy to game
 		cp --preserve=all --recursive "${working}/${mod_dir}" "${steam_link_name}/mods/"
 
+		# AMLAO manages its own load order — remove any conflicting file
+		if [[ "${filename}" == Auto\ Mod\ Loading\ and\ Ordering-246-* ]]; then
+			rm -f "${mod_pack_home}/mods/mod_load_order.txt"
+			rm -f "${steam_link_name}/mods/mod_load_order.txt"
+		fi
+
 		# Clean working
 		rm -rf "${working:?}/${mod_dir:?}"
 
@@ -392,6 +398,7 @@ cmd_rebuild() {
 	if [[ -n "${amlao_zip}" ]]; then
 		printf "%b\n" "Deploying Auto Mod Loading and Ordering ..."
 		unzip -qo "${amlao_zip}" -d "${mod_pack_home}/mods"
+		rm -f "${mod_pack_home}/mods/mod_load_order.txt"
 	fi
 
 	# Deploy rest to mods/

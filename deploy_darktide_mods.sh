@@ -242,6 +242,7 @@ fi
 printf "%b\n" "Step 3: Auto Mod Loading and Ordering"
 if [[ -n "${amlao_zip}" ]]; then
 	deploy_zip "${amlao_zip}" "Auto Mod Loading and Ordering" "${darktide_found_dir}/mods"
+	rm -f "${darktide_found_dir}/mods/mod_load_order.txt"
 else
 	printf "%b\n" "  AMLAO zip not found."
 	printf "%b\n" "  Download from: https://www.nexusmods.com/warhammer40kdarktide/mods/246"

@@ -229,6 +229,7 @@ if [[ -n "${mod_pack_zip}" ]]; then
 	printf "%b\n" "Mod pack found. Deploying full mod pack to game directory ..."
 	clean_mod_loader
 	deploy_zip_to_game "${mod_pack_zip}" "Mod pack"
+	rm -f "${darktide_found_dir}/mods/mod_load_order.txt"
 else
 	printf "%b\n" "No mod pack zip found. Deploying from individual mod zips ..."
 
@@ -267,6 +268,7 @@ else
 		if [[ -n "${amlao_zip}" ]]; then
 			printf "%b\n" "Auto Mod Loading and Ordering not found. Installing from zip ..."
 			deploy_zip_to_game "${amlao_zip}" "Auto Mod Loading and Ordering" "${darktide_found_dir}/mods"
+			rm -f "${darktide_found_dir}/mods/mod_load_order.txt"
 		else
 			printf "%b\n" "Auto Mod Loading and Ordering zip not found. Skipping."
 			printf "%b\n" "  Download from: https://www.nexusmods.com/warhammer40kdarktide/mods/246"
