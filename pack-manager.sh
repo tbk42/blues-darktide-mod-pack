@@ -481,6 +481,10 @@ cmd_rebuild() {
 cmd_build_pack() {
 	ensure_dirs
 
+	if ! command -v zip &>/dev/null; then
+		error "zip command not found. Install it and try again." "exit"
+	fi
+
 	local version
 	version="$(get_new_version)"
 	local pack_zip="${this_pack_name} ${version}.zip"
@@ -524,14 +528,17 @@ cmd_build_pack() {
 	done < <(find "./" -maxdepth "1" -type "f" -name "${this_pack_name}*.sha256" -print0 2>/dev/null)
 
 	# Zip the build directory
-	local pack_path="${PWD}/${pack_zip}"
-	[[ -f "${pack_path}" ]] && rm -f "${pack_path}"
-	(cd "${build_dir}" && zip -rq "${pack_path}" .)
-	if [[ -f "${pack_path}" ]]; then
-		sha256sum "${pack_path}" > "${pack_path}.sha256"
+	local saved_pwd="${PWD}"
+	cd "${build_dir}" || { error "Failed to enter build directory"; return; }
+	if zip -rq "${saved_pwd}/${pack_zip}" .; then
+		cd "${saved_pwd}"
+		sha256sum "${pack_zip}" > "${pack_zip}.sha256"
 		printf "%b\n" "  Zips included: ${green}${zip_count}${reset}"
 		printf "%b\n" "  Created: ${green}${pack_zip}${reset}"
-		printf "%b\n" "  SHA256:  ${cyan}$(cut -d' ' -f1 < "${pack_path}.sha256")${reset}"
+		printf "%b\n" "  SHA256:  ${cyan}$(cut -d' ' -f1 < "${pack_zip}.sha256")${reset}"
+	else
+		cd "${saved_pwd}"
+		error "zip command failed"
 	fi
 
 	# Clean up
